@@ -1,4 +1,5 @@
 // app/api/razorpay/create-order/route.ts
+export const dynamic = 'force-dynamic'
 import { NextRequest, NextResponse } from 'next/server'
 import { createRazorpayOrder } from '@/lib/razorpay'
 import { verifyToken } from '@/lib/firebase-admin'

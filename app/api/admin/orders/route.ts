@@ -1,4 +1,5 @@
 // app/api/admin/orders/route.ts
+export const dynamic = 'force-dynamic'
 import { NextRequest, NextResponse } from 'next/server'
 import { isAdmin, getAdminDb } from '@/lib/firebase-admin'
 

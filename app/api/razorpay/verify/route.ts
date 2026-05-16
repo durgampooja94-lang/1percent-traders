@@ -1,3 +1,4 @@
+export const dynamic = 'force-dynamic'
 import { NextRequest, NextResponse } from 'next/server'
 import { verifyRazorpaySignature } from '@/lib/razorpay'
 import { verifyToken, getAdminDb } from '@/lib/firebase-admin'

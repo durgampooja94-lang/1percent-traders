@@ -1,4 +1,5 @@
 // app/api/video/signed-url/route.ts
+export const dynamic = 'force-dynamic'
 import { NextRequest, NextResponse } from 'next/server'
 import { verifyToken, getAdminDb } from '@/lib/firebase-admin'
 import { getBunnyEmbedUrl } from '@/lib/bunny'
