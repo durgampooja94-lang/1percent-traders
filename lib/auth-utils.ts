@@ -1,5 +1,5 @@
 // lib/auth-utils.ts
-import { adminAuth, adminDb } from './firebase-admin'
+import { getAdminAuth, getAdminDb } from './firebase-admin'
 import { headers } from 'next/headers'
 
 export async function getTokenFromHeaders(): Promise<string | null> {
@@ -13,8 +13,8 @@ export async function getCurrentUser() {
   const token = await getTokenFromHeaders()
   if (!token) return null
   try {
-    const decoded = await adminAuth.verifyIdToken(token)
-    const userDoc = await adminDb.collection('users').doc(decoded.uid).get()
+    const decoded = await getAdminAuth().verifyIdToken(token)
+    const userDoc = await getAdminDb().collection('users').doc(decoded.uid).get()
     if (!userDoc.exists) return null
     return { uid: decoded.uid, ...userDoc.data() }
   } catch {
@@ -35,7 +35,7 @@ export async function requireAdmin() {
 }
 
 export async function hasCoursePurchase(userId: string, courseId: string): Promise<boolean> {
-  const purchaseDoc = await adminDb
+  const purchaseDoc = await getAdminDb()
     .collection('users')
     .doc(userId)
     .collection('purchases')
