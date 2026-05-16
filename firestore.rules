@@ -1,0 +1,69 @@
+// firestore.rules
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Helper functions
+    function isAuth() {
+      return request.auth != null;
+    }
+
+    function isOwner(uid) {
+      return request.auth.uid == uid;
+    }
+
+    function isAdmin() {
+      return isAuth() &&
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+    }
+
+    // ─── Users ───────────────────────────────────────────────────────────
+    match /users/{uid} {
+      allow read: if isOwner(uid) || isAdmin();
+      allow create: if isOwner(uid);
+      allow update: if isOwner(uid) && !('role' in request.resource.data.diff(resource.data).affectedKeys());
+      allow delete: if isAdmin();
+
+      // Purchases subcollection — READ only by owner/admin, WRITE only by server (Admin SDK)
+      match /purchases/{courseId} {
+        allow read: if isOwner(uid) || isAdmin();
+        allow write: if false; // server-only via Admin SDK
+      }
+
+      // Progress subcollection — owner can read/write
+      match /progress/{videoId} {
+        allow read, write: if isOwner(uid);
+      }
+    }
+
+    // ─── Courses ─────────────────────────────────────────────────────────
+    match /courses/{courseId} {
+      allow read: if true; // public — anyone can browse courses
+      allow write: if isAdmin();
+
+      // Playlists subcollection
+      match /playlists/{playlistId} {
+        allow read: if true;
+        allow write: if isAdmin();
+
+        // Videos subcollection
+        match /videos/{videoId} {
+          allow read: if true; // metadata is public; actual video URL is server-gated
+          allow write: if isAdmin();
+        }
+      }
+    }
+
+    // ─── Orders ──────────────────────────────────────────────────────────
+    match /orders/{orderId} {
+      allow read: if isAuth() && (resource.data.userId == request.auth.uid || isAdmin());
+      allow write: if false; // server-only via Admin SDK
+    }
+
+    // ─── Coupons ─────────────────────────────────────────────────────────
+    match /coupons/{couponId} {
+      allow read: if isAuth();
+      allow write: if isAdmin();
+    }
+  }
+}
