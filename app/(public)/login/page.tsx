@@ -39,7 +39,7 @@ export default function LoginPage({ searchParams }: { searchParams: { redirect?:
       await signInWithGoogle()
       // signInWithRedirect navigates away — nothing to do here
     } catch (e: any) {
-      setError('Sign-in failed. Please try again.')
+      setError(e?.code || e?.message || 'Sign-in failed')
       setLoading(false)
     }
   }
