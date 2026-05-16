@@ -244,7 +244,7 @@ export default function AdminCoursesPage() {
                               <GripVertical className="w-4 h-4 text-gray-600 flex-shrink-0" />
                               {isEditingPl ? (
                                 <>
-                                  <input value={editingPlaylist.title} onChange={e => setEditingPlaylist(p => p ? { ...p, title: e.target.value } : p)} autoFocus
+                                  <input value={editingPlaylist?.title ?? ''} onChange={e => setEditingPlaylist(p => p ? { ...p, title: e.target.value } : p)} autoFocus
                                     className="flex-1 bg-dark-700 border border-brand-500 rounded-lg px-2 py-1 text-white text-sm focus:outline-none" />
                                   <button onClick={saveEditPlaylist} className="text-green-400 hover:text-green-300 p-1"><Check className="w-4 h-4" /></button>
                                   <button onClick={() => setEditingPlaylist(null)} className="text-gray-500 hover:text-white p-1"><X className="w-4 h-4" /></button>
@@ -268,16 +268,16 @@ export default function AdminCoursesPage() {
                                     {isEditingV ? (
                                       <div className="px-4 py-3 bg-dark-900/60 space-y-2">
                                         <div className="grid grid-cols-2 gap-2">
-                                          <input value={editingVideo.form.title} onChange={e => setEditingVideo(p => p ? { ...p, form: { ...p.form, title: e.target.value } } : p)} placeholder="Video title"
+                                          <input value={editingVideo?.form.title ?? ''} onChange={e => setEditingVideo(p => p ? { ...p, form: { ...p.form, title: e.target.value } } : p)} placeholder="Video title"
                                             className="bg-dark-700 border border-brand-500 rounded-lg px-3 py-2 text-white text-xs focus:outline-none" />
-                                          <input value={editingVideo.form.bunnyVideoId} onChange={e => setEditingVideo(p => p ? { ...p, form: { ...p.form, bunnyVideoId: e.target.value } } : p)} placeholder="Bunny Video ID"
+                                          <input value={editingVideo?.form.bunnyVideoId ?? ''} onChange={e => setEditingVideo(p => p ? { ...p, form: { ...p.form, bunnyVideoId: e.target.value } } : p)} placeholder="Bunny Video ID"
                                             className="bg-dark-700 border border-brand-500 rounded-lg px-3 py-2 text-white text-xs font-mono focus:outline-none" />
                                         </div>
                                         <div className="flex items-center gap-2">
-                                          <input type="number" value={editingVideo.form.duration} onChange={e => setEditingVideo(p => p ? { ...p, form: { ...p.form, duration: e.target.value } } : p)} placeholder="Duration (seconds)"
+                                          <input type="number" value={editingVideo?.form.duration ?? ''} onChange={e => setEditingVideo(p => p ? { ...p, form: { ...p.form, duration: e.target.value } } : p)} placeholder="Duration (seconds)"
                                             className="w-40 bg-dark-700 border border-brand-500 rounded-lg px-3 py-2 text-white text-xs focus:outline-none" />
                                           <label className="flex items-center gap-1.5 text-gray-400 text-xs cursor-pointer">
-                                            <input type="checkbox" checked={editingVideo.form.isFreePreview} onChange={e => setEditingVideo(p => p ? { ...p, form: { ...p.form, isFreePreview: e.target.checked } } : p)} className="accent-brand-500" />
+                                            <input type="checkbox" checked={editingVideo?.form.isFreePreview ?? false} onChange={e => setEditingVideo(p => p ? { ...p, form: { ...p.form, isFreePreview: e.target.checked } } : p)} className="accent-brand-500" />
                                             Free preview
                                           </label>
                                           <div className="ml-auto flex gap-2">
