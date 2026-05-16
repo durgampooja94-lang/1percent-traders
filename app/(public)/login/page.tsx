@@ -37,12 +37,9 @@ export default function LoginPage({ searchParams }: { searchParams: { redirect?:
     setError('')
     try {
       await signInWithGoogle()
-      // Cookie is set inside signInWithGoogle — redirect immediately
-      router.push(redirectTo)
+      // signInWithRedirect navigates away — nothing to do here
     } catch (e: any) {
-      if (e.code !== 'auth/popup-closed-by-user' && e.code !== 'auth/cancelled-popup-request') {
-        setError('Sign-in failed. Please try again.')
-      }
+      setError('Sign-in failed. Please try again.')
       setLoading(false)
     }
   }

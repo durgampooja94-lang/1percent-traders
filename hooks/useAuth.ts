@@ -2,7 +2,7 @@
 import { useState, useEffect, createContext, useContext } from 'react'
 import {
   User as FirebaseUser, onAuthStateChanged, signOut,
-  signInWithPopup, GoogleAuthProvider
+  signInWithRedirect, getRedirectResult, GoogleAuthProvider
 } from 'firebase/auth'
 import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore'
 import { auth, db } from '@/lib/firebase'
@@ -37,6 +37,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
+    getRedirectResult(auth).catch(() => {})
+
     const unsubscribe = onAuthStateChanged(auth, async (fbUser) => {
       setFirebaseUser(fbUser)
       if (fbUser) {
@@ -91,9 +93,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }
 
   const signInWithGoogle = async () => {
-    const result = await signInWithPopup(auth, googleProvider)
-    const token = await result.user.getIdToken()
-    document.cookie = `firebase-token=${token}; path=/; max-age=3600; SameSite=Strict`
+    await signInWithRedirect(auth, googleProvider)
   }
 
   return React.createElement(
