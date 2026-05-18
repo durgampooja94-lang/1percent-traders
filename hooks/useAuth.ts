@@ -75,7 +75,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       } catch (e) {
         console.error('Auth state error:', e)
         if (fbUser) {
-          setUser({ uid: fbUser.uid, name: fbUser.displayName || '', email: fbUser.email || '', photoURL: fbUser.photoURL || '', role: 'user' } as User)
+          const isAdmin = fbUser.email === ADMIN_EMAIL
+          setUser({ uid: fbUser.uid, name: fbUser.displayName || '', email: fbUser.email || '', photoURL: fbUser.photoURL || '', role: isAdmin ? 'admin' : 'user' } as User)
         }
       } finally {
         setLoading(false)
