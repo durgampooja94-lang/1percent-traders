@@ -39,41 +39,47 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (fbUser) => {
       setFirebaseUser(fbUser)
-      if (fbUser) {
-        const token = await fbUser.getIdToken()
-        document.cookie = `firebase-token=${token}; path=/; max-age=3600; SameSite=Strict`
+      try {
+        if (fbUser) {
+          const token = await fbUser.getIdToken()
+          document.cookie = `firebase-token=${token}; path=/; max-age=3600; SameSite=Strict`
 
-        const userDocRef = doc(db, 'users', fbUser.uid)
-        const userDoc = await getDoc(userDocRef)
+          const userDocRef = doc(db, 'users', fbUser.uid)
+          const userDoc = await getDoc(userDocRef)
 
-        if (!userDoc.exists()) {
-          // First-time Google sign-in: create Firestore user doc
-          const isAdmin = fbUser.email === ADMIN_EMAIL
-          const newUser: any = {
-            uid: fbUser.uid,
-            name: fbUser.displayName || '',
-            email: fbUser.email || '',
-            photoURL: fbUser.photoURL || '',
-            phone: '',
-            role: isAdmin ? 'admin' : 'user',
-            profileComplete: false,
-            createdAt: serverTimestamp(),
+          if (!userDoc.exists()) {
+            const isAdmin = fbUser.email === ADMIN_EMAIL
+            const newUser: any = {
+              uid: fbUser.uid,
+              name: fbUser.displayName || '',
+              email: fbUser.email || '',
+              photoURL: fbUser.photoURL || '',
+              phone: '',
+              role: isAdmin ? 'admin' : 'user',
+              profileComplete: false,
+              createdAt: serverTimestamp(),
+            }
+            await setDoc(userDocRef, newUser)
+            setUser({ ...newUser, createdAt: new Date().toISOString() } as User)
+          } else {
+            const data = userDoc.data()
+            if (fbUser.email === ADMIN_EMAIL && data.role !== 'admin') {
+              await setDoc(userDocRef, { role: 'admin' }, { merge: true })
+            }
+            setUser({ uid: fbUser.uid, ...data } as User)
           }
-          await setDoc(userDocRef, newUser)
-          setUser({ ...newUser, createdAt: new Date().toISOString() } as User)
         } else {
-          const data = userDoc.data()
-          // Auto-upgrade to admin if email matches
-          if (fbUser.email === ADMIN_EMAIL && data.role !== 'admin') {
-            await setDoc(userDocRef, { role: 'admin' }, { merge: true })
-          }
-          setUser({ uid: fbUser.uid, ...data } as User)
+          setUser(null)
+          document.cookie = 'firebase-token=; path=/; max-age=0'
         }
-      } else {
-        setUser(null)
-        document.cookie = 'firebase-token=; path=/; max-age=0'
+      } catch (e) {
+        console.error('Auth state error:', e)
+        if (fbUser) {
+          setUser({ uid: fbUser.uid, name: fbUser.displayName || '', email: fbUser.email || '', photoURL: fbUser.photoURL || '', role: 'user' } as User)
+        }
+      } finally {
+        setLoading(false)
       }
-      setLoading(false)
     })
     return unsubscribe
   }, [])
