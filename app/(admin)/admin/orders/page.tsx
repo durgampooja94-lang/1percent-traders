@@ -2,7 +2,7 @@
 // app/(admin)/admin/orders/page.tsx
 import { useState, useEffect } from 'react'
 import { useAuth } from '@/hooks/useAuth'
-import { Search, Filter, Download, Receipt, IndianRupee, CheckCircle, XCircle } from 'lucide-react'
+import { Search, Download, Receipt, IndianRupee, CheckCircle, XCircle } from 'lucide-react'
 import { clsx } from 'clsx'
 
 interface Order {
@@ -60,7 +60,7 @@ export default function AdminOrdersPage() {
     const csv = [
       'Order ID,User ID,Amount,Razorpay Order ID,Payment ID,Status,Date',
       ...filtered.map(o =>
-        `${o.id},${o.userId},${o.amount / 100},${o.razorpayOrderId},${o.razorpayPaymentId || ''},${o.status},${o.createdAt?.toDate?.()?.toLocaleDateString() || ''}`
+        `${o.id},${o.userId},${o.amount},${o.razorpayOrderId},${o.razorpayPaymentId || ''},${o.status},${o.createdAt?.toDate?.()?.toLocaleDateString() || ''}`
       )
     ].join('\n')
     const a = document.createElement('a')
@@ -78,7 +78,7 @@ export default function AdminOrdersPage() {
 
   const paidOrders = orders.filter(o => o.status === 'paid')
   const avgOrderValue = paidOrders.length > 0
-    ? Math.round(paidOrders.reduce((s, o) => s + o.amount, 0) / paidOrders.length / 100)
+    ? Math.round(paidOrders.reduce((s, o) => s + o.amount, 0) / paidOrders.length)
     : 0
 
   return (
@@ -97,8 +97,8 @@ export default function AdminOrdersPage() {
       {/* Stats */}
       <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
         {[
-          { label: 'Total Revenue', value: `₹${(totalRevenue / 100).toLocaleString('en-IN')}`, icon: IndianRupee, color: 'text-brand-400', bg: 'bg-brand-500/15' },
-          { label: 'Revenue Today', value: `₹${(revenueToday / 100).toLocaleString()}`, icon: IndianRupee, color: 'text-green-400', bg: 'bg-green-500/15' },
+          { label: 'Total Revenue', value: `₹${totalRevenue.toLocaleString('en-IN')}`, icon: IndianRupee, color: 'text-brand-400', bg: 'bg-brand-500/15' },
+          { label: 'Revenue Today', value: `₹${revenueToday.toLocaleString('en-IN')}`, icon: IndianRupee, color: 'text-green-400', bg: 'bg-green-500/15' },
           { label: 'Paid Orders', value: paidOrders.length, icon: CheckCircle, color: 'text-green-400', bg: 'bg-green-500/15' },
           { label: 'Avg Order Value', value: `₹${avgOrderValue.toLocaleString()}`, icon: Receipt, color: 'text-gold-400', bg: 'bg-gold-500/15' },
         ].map(({ label, value, icon: Icon, color, bg }) => (
@@ -176,7 +176,7 @@ export default function AdminOrdersPage() {
                     {order.courseIds?.length || 0}
                   </td>
                   <td className="px-5 py-4 font-bold text-white whitespace-nowrap">
-                    ₹{((order.amount || 0) / 100).toLocaleString('en-IN')}
+                    ₹{(order.amount || 0).toLocaleString('en-IN')}
                   </td>
                   <td className="px-5 py-4">
                     <span className={`inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-full ${statusColors[order.status] || statusColors.created}`}>

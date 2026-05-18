@@ -274,7 +274,7 @@ export default function AdminCoursesPage() {
                                             className="bg-dark-700 border border-brand-500 rounded-lg px-3 py-2 text-white text-xs font-mono focus:outline-none" />
                                         </div>
                                         <div className="flex items-center gap-2">
-                                          <input type="number" value={editingVideo?.form.duration ?? ''} onChange={e => setEditingVideo(p => p ? { ...p, form: { ...p.form, duration: e.target.value } } : p)} placeholder="Duration (seconds)"
+                                          <input type="number" value={editingVideo?.form.duration ?? ''} onChange={e => setEditingVideo(p => p ? { ...p, form: { ...p.form, duration: e.target.value } } : p)} placeholder="Duration (min)"
                                             className="w-40 bg-dark-700 border border-brand-500 rounded-lg px-3 py-2 text-white text-xs focus:outline-none" />
                                           <label className="flex items-center gap-1.5 text-gray-400 text-xs cursor-pointer">
                                             <input type="checkbox" checked={editingVideo?.form.isFreePreview ?? false} onChange={e => setEditingVideo(p => p ? { ...p, form: { ...p.form, isFreePreview: e.target.checked } } : p)} className="accent-brand-500" />
@@ -292,7 +292,7 @@ export default function AdminCoursesPage() {
                                         <Video className="w-4 h-4 text-gray-500 flex-shrink-0" />
                                         <span className="text-gray-300 text-sm flex-1 truncate">{video.title}</span>
                                         {video.isFreePreview && <span className="text-brand-400 text-xs font-medium px-2 py-0.5 bg-brand-500/10 rounded-full">Preview</span>}
-                                        <span className="text-gray-500 text-xs">{Math.floor((video.duration || 0) / 60)}:{String((video.duration || 0) % 60).padStart(2, '0')}</span>
+                                        <span className="text-gray-500 text-xs">{video.duration || 0} min</span>
                                         <button onClick={() => setEditingVideo({ courseId: course.id, playlistId: playlist.id, videoId: video.id, form: { title: video.title, bunnyVideoId: video.bunnyVideoId || '', duration: String(video.duration || 0), isFreePreview: video.isFreePreview || false } })} className="text-gray-600 hover:text-brand-400 p-1 transition-colors"><Edit2 className="w-3.5 h-3.5" /></button>
                                         <button onClick={() => deleteVideo(course.id, playlist.id, video.id)} className="text-gray-600 hover:text-red-400 p-1 transition-colors"><Trash2 className="w-3.5 h-3.5" /></button>
                                       </div>
@@ -312,7 +312,7 @@ export default function AdminCoursesPage() {
                                   className="bg-dark-700 border border-dark-500 rounded-lg px-3 py-2 text-white text-xs placeholder-gray-500 focus:outline-none focus:border-brand-500 font-mono" />
                               </div>
                               <div className="flex items-center gap-2">
-                                <input type="number" value={vf.duration} onChange={e => setNewVideoForm(p => ({ ...p, [vKey]: { ...(p[vKey] || emptyVideoForm), duration: e.target.value } }))} placeholder="Duration (seconds)"
+                                <input type="number" value={vf.duration} onChange={e => setNewVideoForm(p => ({ ...p, [vKey]: { ...(p[vKey] || emptyVideoForm), duration: e.target.value } }))} placeholder="Duration (min)"
                                   className="w-40 bg-dark-700 border border-dark-500 rounded-lg px-3 py-2 text-white text-xs placeholder-gray-500 focus:outline-none focus:border-brand-500" />
                                 <label className="flex items-center gap-1.5 text-gray-400 text-xs cursor-pointer">
                                   <input type="checkbox" checked={vf.isFreePreview} onChange={e => setNewVideoForm(p => ({ ...p, [vKey]: { ...(p[vKey] || emptyVideoForm), isFreePreview: e.target.checked } }))} className="accent-brand-500" />

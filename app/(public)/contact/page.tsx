@@ -6,7 +6,7 @@ export const metadata = {
   title: 'Contact Us – The 1% Traders Hub',
 }
 
-const WHATSAPP_NUMBER = '919390081074'
+const WHATSAPP_NUMBER = '917032174426'
 const WHATSAPP_URL = `https://wa.me/${WHATSAPP_NUMBER}`
 const CONTACT_EMAIL = 'durgampooja94@gmail.com'
 
@@ -39,7 +39,7 @@ export default function ContactPage() {
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-white font-semibold text-base">WhatsApp</p>
-              <p className="text-gray-400 text-sm mt-0.5">+91 93900 81074</p>
+              <p className="text-gray-400 text-sm mt-0.5">+91 70321 74426</p>
               <p className="text-gray-500 text-xs mt-1">Chat with us directly on WhatsApp</p>
             </div>
             <ExternalLink className="w-4 h-4 text-gray-500 group-hover:text-green-400 transition-colors shrink-0" />

@@ -30,7 +30,7 @@ export default function Footer() {
                 className="w-9 h-9 rounded-xl bg-dark-700 border border-dark-500 flex items-center justify-center text-gray-400 hover:text-brand-400 hover:border-brand-500/50 transition-all">
                 <Twitter className="w-4 h-4" />
               </a>
-              <a href="tel:+919390081074"
+              <a href="tel:+917032174426"
                 className="w-9 h-9 rounded-xl bg-dark-700 border border-dark-500 flex items-center justify-center text-gray-400 hover:text-brand-400 hover:border-brand-500/50 transition-all">
                 <Phone className="w-4 h-4" />
               </a>
@@ -60,7 +60,7 @@ export default function Footer() {
             </ul>
             <div className="mt-4">
               <p className="text-gray-500 text-xs">Contact:</p>
-              <a href="tel:+919390081074" className="text-brand-400 text-sm font-medium hover:text-brand-300">+91 93900 81074</a>
+              <a href="tel:+917032174426" className="text-brand-400 text-sm font-medium hover:text-brand-300">+91 70321 74426</a>
             </div>
           </div>
         </div>

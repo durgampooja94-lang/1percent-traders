@@ -1,7 +1,7 @@
 'use client'
 import { useState } from 'react'
-import Link from 'next/link'
-import { useAuth } from '@/hooks/useAuth'
+import Link from 'next/link'      
+import { useAuth } from '@/hooks/useAuth'     
 import { Menu, X, LogOut, LayoutDashboard, User, TrendingUp } from 'lucide-react'
 
 function LogoMark() {

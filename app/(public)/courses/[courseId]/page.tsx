@@ -213,7 +213,7 @@ export default function CourseDetailPage() {
                               <Lock className="w-3.5 h-3.5 text-gray-600" />
                             )}
                             <span className="text-gray-600 text-xs">
-                              {Math.floor((video.duration || 0) / 60)}:{String((video.duration || 0) % 60).padStart(2, '0')}
+                              {video.duration || 0} min
                             </span>
                           </div>
                         ))}
