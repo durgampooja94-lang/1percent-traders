@@ -1,7 +1,7 @@
 'use client'
 import { useState, useEffect } from 'react'
 import { useParams, useRouter } from 'next/navigation'
-import { doc, getDoc, collection, getDocs, orderBy, query } from 'firebase/firestore'
+import { doc, getDoc } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
 import { useAuth } from '@/hooks/useAuth'
 import { useCart } from '@/hooks/useCart'
@@ -30,18 +30,12 @@ export default function CourseDetailPage() {
   useEffect(() => {
     async function load() {
       try {
-        const courseDoc = await getDoc(doc(db, 'courses', courseId))
-        if (!courseDoc.exists()) { router.push('/'); return }
-        setCourse({ id: courseDoc.id, ...courseDoc.data() } as Course)
-
-        const playlistsSnap = await getDocs(query(collection(db, 'courses', courseId, 'playlists'), orderBy('order')))
-        const pls = await Promise.all(playlistsSnap.docs.map(async pDoc => {
-          const videosSnap = await getDocs(query(collection(db, 'courses', courseId, 'playlists', pDoc.id, 'videos'), orderBy('order')))
-          const videos = videosSnap.docs.map(v => ({ id: v.id, ...v.data() } as any))
-          return { id: pDoc.id, ...pDoc.data(), videos } as Playlist
-        }))
-        setPlaylists(pls)
-        if (pls.length > 0) setExpandedPlaylist(pls[0].id)
+        const res = await fetch(`/api/courses/${courseId}`)
+        if (!res.ok) { router.push('/'); return }
+        const data = await res.json()
+        setCourse(data.course as Course)
+        setPlaylists(data.playlists as Playlist[])
+        if (data.playlists.length > 0) setExpandedPlaylist(data.playlists[0].id)
 
         if (user) {
           const purchaseDoc = await getDoc(doc(db, 'users', user.uid, 'purchases', courseId))
