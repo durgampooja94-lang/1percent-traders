@@ -37,7 +37,7 @@ export default function LoginPage({ searchParams }: { searchParams: { redirect?:
     setError('')
     try {
       await signInWithGoogle()
-      router.push(redirectTo)
+      // useEffect watching `user` handles the redirect once onAuthStateChanged fires
     } catch (e: any) {
       if (e.code !== 'auth/popup-closed-by-user' && e.code !== 'auth/cancelled-popup-request') {
         setError(e?.code || 'Sign-in failed. Please try again.')
