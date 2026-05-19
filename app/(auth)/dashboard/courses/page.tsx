@@ -1,6 +1,6 @@
 'use client'
 import { useState, useEffect } from 'react'
-import { collection, getDocs, doc, getDoc } from 'firebase/firestore'
+import { collection, query, where, getDocs, doc, getDoc } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
 import { useAuth } from '@/hooks/useAuth'
 import CourseCard from '@/components/course/CourseCard'
@@ -18,12 +18,37 @@ export default function MyCoursesPage() {
     if (!user) return
     async function fetchPurchases() {
       try {
-        const purchasesSnap = await getDocs(collection(db, 'users', user!.uid, 'purchases'))
-        const courseIds = purchasesSnap.docs.map(d => d.id)
-        const courseData = await Promise.all(courseIds.map(id => getDoc(doc(db, 'courses', id))))
-        setCourses(courseData.filter(d => d.exists()).map(d => ({ id: d.id, ...d.data() } as Course)))
-      } catch (e) { console.error(e) }
-      finally { setLoading(false) }
+        // Query orders collection for paid orders by this user
+        const ordersQuery = query(
+          collection(db, 'orders'),
+          where('userId', '==', user!.uid),
+          where('status', '==', 'paid')
+        )
+        const ordersSnap = await getDocs(ordersQuery)
+
+        // Extract all courseIds from orders
+        const allCourseIds = ordersSnap.docs.flatMap(d => {
+          const data = d.data()
+          return data.courseIds || (data.courseId ? [data.courseId] : [])
+        })
+
+        // Remove duplicates
+        const uniqueCourseIds = Array.from(new Set(allCourseIds)) as string[]
+
+        // Fetch course documents
+        const courseData = await Promise.all(
+          uniqueCourseIds.map(id => getDoc(doc(db, 'courses', id)))
+        )
+        setCourses(
+          courseData
+            .filter(d => d.exists())
+            .map(d => ({ id: d.id, ...d.data() } as Course))
+        )
+      } catch (e) {
+        console.error(e)
+      } finally {
+        setLoading(false)
+      }
     }
     fetchPurchases()
   }, [user])
