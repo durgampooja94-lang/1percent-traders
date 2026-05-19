@@ -1,9 +1,6 @@
 'use client'
-// app/(auth)/learn/[courseId]/page.tsx
 import { useState, useEffect } from 'react'
 import { useParams, useRouter } from 'next/navigation'
-import { doc, getDoc, collection, getDocs, orderBy, query } from 'firebase/firestore'
-import { db } from '@/lib/firebase'
 import { useAuth } from '@/hooks/useAuth'
 import VideoPlayer from '@/components/course/VideoPlayer'
 import { Spinner } from '@/components/ui/index'
@@ -11,7 +8,7 @@ import { Course, Playlist, Video, Progress } from '@/types'
 
 export default function LearnPage() {
   const { courseId } = useParams<{ courseId: string }>()
-  const { user, loading: authLoading } = useAuth()
+  const { user, loading: authLoading, getToken } = useAuth()
   const router = useRouter()
 
   const [course, setCourse] = useState<Course | null>(null)
@@ -30,44 +27,30 @@ export default function LearnPage() {
 
     async function load() {
       try {
-        // Check purchase
-        const purchaseDoc = await getDoc(doc(db, 'users', user!.uid, 'purchases', courseId))
-        if (!purchaseDoc.exists()) {
+        const token = await getToken()
+
+        // Check purchase via admin API (bypasses Firestore rules)
+        const purchasesRes = await fetch('/api/user/courses', {
+          headers: { Authorization: `Bearer ${token}` }
+        })
+        const purchasesData = await purchasesRes.json()
+        const hasPurchased = (purchasesData.courses || []).some((c: any) => c.id === courseId)
+        if (!hasPurchased) {
           router.push(`/courses/${courseId}`)
           return
         }
         setAuthorized(true)
 
-        // Load course
-        const courseDoc = await getDoc(doc(db, 'courses', courseId))
-        if (!courseDoc.exists()) { router.push('/dashboard'); return }
-        const courseData = { id: courseDoc.id, ...courseDoc.data() } as Course
-        setCourse(courseData)
+        // Load course + playlists + videos via existing admin API
+        const courseRes = await fetch(`/api/courses/${courseId}`)
+        if (!courseRes.ok) { router.push('/dashboard'); return }
+        const courseData = await courseRes.json()
+        setCourse(courseData.course as Course)
+        const loadedPlaylists = courseData.playlists as Playlist[]
+        setPlaylists(loadedPlaylists)
 
-        // Load playlists + videos
-        const playlistsSnap = await getDocs(
-          query(collection(db, 'courses', courseId, 'playlists'), orderBy('order'))
-        )
-        const playlistsWithVideos = await Promise.all(
-          playlistsSnap.docs.map(async plDoc => {
-            const videosSnap = await getDocs(
-              query(collection(db, 'courses', courseId, 'playlists', plDoc.id, 'videos'), orderBy('order'))
-            )
-            const videos = videosSnap.docs.map(v => ({ id: v.id, ...v.data() } as Video))
-            return { id: plDoc.id, ...plDoc.data(), videos } as Playlist
-          })
-        )
-        setPlaylists(playlistsWithVideos)
-
-        // Set first video
-        const firstVideo = playlistsWithVideos[0]?.videos?.[0]
+        const firstVideo = loadedPlaylists[0]?.videos?.[0] as Video | undefined
         if (firstVideo) setCurrentVideo(firstVideo)
-
-        // Load progress
-        const progressSnap = await getDocs(collection(db, 'users', user!.uid, 'progress'))
-        const progressMap: Record<string, Progress> = {}
-        progressSnap.docs.forEach(d => { progressMap[d.id] = d.data() as Progress })
-        setProgress(progressMap)
       } catch (e) {
         console.error(e)
       } finally {
