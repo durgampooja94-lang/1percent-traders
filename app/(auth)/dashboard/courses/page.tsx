@@ -18,24 +18,17 @@ export default function MyCoursesPage() {
     if (!user) return
     async function fetchPurchases() {
       try {
-        // Query orders collection for paid orders by this user
         const ordersQuery = query(
           collection(db, 'orders'),
           where('userId', '==', user!.uid),
           where('status', '==', 'paid')
         )
         const ordersSnap = await getDocs(ordersQuery)
-
-        // Extract all courseIds from orders
         const allCourseIds = ordersSnap.docs.flatMap(d => {
           const data = d.data()
           return data.courseIds || (data.courseId ? [data.courseId] : [])
         })
-
-        // Remove duplicates
         const uniqueCourseIds = Array.from(new Set(allCourseIds)) as string[]
-
-        // Fetch course documents
         const courseData = await Promise.all(
           uniqueCourseIds.map(id => getDoc(doc(db, 'courses', id)))
         )
@@ -63,7 +56,6 @@ export default function MyCoursesPage() {
         <h1 className="text-2xl font-black text-white">My Courses</h1>
         <p className="text-gray-400 text-sm mt-1">Your enrolled courses</p>
       </div>
-
       {courses.length === 0 ? (
         <div className="text-center py-20 bg-dark-800 border border-dark-600 rounded-2xl">
           <div className="w-20 h-20 rounded-3xl bg-dark-700 border border-dark-500 flex items-center justify-center mx-auto mb-5">

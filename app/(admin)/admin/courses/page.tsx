@@ -61,7 +61,21 @@ export default function AdminCoursesPage() {
   const openCreate = () => { setEditCourse(null); setForm(emptyForm); setModalOpen(true) }
   const openEdit = (c: Course) => {
     setEditCourse(c)
-    setForm({ title: c.title, shortDescription: c.shortDescription, description: c.description, price: String(c.price), originalPrice: String(c.originalPrice || ''), level: c.level, language: c.language, thumbnailUrl: c.thumbnailUrl || '', instructor: (c as any).instructor || '', about: (c as any).about || '', tags: ((c as any).tags || []).join(', '), whatYoullLearn: ((c as any).whatYoullLearn || []).join('\n'), requirements: ((c as any).requirements || []).join('\n') })
+    setForm({
+      title: c.title,
+      shortDescription: c.shortDescription,
+      description: c.description,
+      price: String(c.price),
+      originalPrice: String(c.originalPrice || ''),
+      level: c.level,
+      language: c.language,
+      thumbnailUrl: c.thumbnailUrl || '',
+      instructor: (c as any).instructor || '',
+      about: (c as any).about || '',
+      tags: ((c as any).tags || []).join(', '),
+      whatYoullLearn: ((c as any).whatYoullLearn || []).join('\n'),
+      requirements: ((c as any).requirements || []).join('\n'),
+    })
     setModalOpen(true)
   }
 
@@ -84,7 +98,16 @@ export default function AdminCoursesPage() {
       const res = await fetch('/api/admin/courses', {
         method: editCourse ? 'PATCH' : 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ ...form, price: Number(form.price), originalPrice: form.originalPrice ? Number(form.originalPrice) : null, thumbnailUrl: form.thumbnailUrl || '', tags: form.tags.split(',').map(t => t.trim()).filter(Boolean), whatYoullLearn: form.whatYoullLearn.split('\n').map(t => t.trim()).filter(Boolean), requirements: form.requirements.split('\n').map(t => t.trim()).filter(Boolean), ...(editCourse ? { id: editCourse.id } : {}) }),
+        body: JSON.stringify({
+          ...form,
+          price: Number(form.price),
+          originalPrice: form.originalPrice ? Number(form.originalPrice) : null,
+          thumbnailUrl: form.thumbnailUrl || '',
+          tags: form.tags.split(',').map(t => t.trim()).filter(Boolean),
+          whatYoullLearn: form.whatYoullLearn.split('\n').map(t => t.trim()).filter(Boolean),
+          requirements: form.requirements.split('\n').map(t => t.trim()).filter(Boolean),
+          ...(editCourse ? { id: editCourse.id } : {})
+        }),
       })
       const data = await res.json()
       if (!res.ok) { setSaveError(`Error ${res.status}: ${data.error || 'Failed to save'}`); return }
@@ -94,7 +117,11 @@ export default function AdminCoursesPage() {
 
   const togglePublish = async (course: Course) => {
     const token = await getToken()
-    await fetch('/api/admin/courses', { method: 'PATCH', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }, body: JSON.stringify({ id: course.id, published: !course.published }) })
+    await fetch('/api/admin/courses', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ id: course.id, published: !course.published })
+    })
     fetchCourses()
   }
 
@@ -118,14 +145,22 @@ export default function AdminCoursesPage() {
   const addPlaylist = async (courseId: string) => {
     if (!newPlaylistTitle.trim()) return
     const token = await getToken()
-    await fetch(`/api/admin/courses/${courseId}/playlists`, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }, body: JSON.stringify({ title: newPlaylistTitle, order: playlists[courseId]?.length || 0 }) })
+    await fetch(`/api/admin/courses/${courseId}/playlists`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ title: newPlaylistTitle, order: playlists[courseId]?.length || 0 })
+    })
     setNewPlaylistTitle(''); setAddingPlaylist(null); loadPlaylists(courseId)
   }
 
   const saveEditPlaylist = async () => {
-    if (!editingPlaylist?.title.trim()) return
+    if (!editingPlaylist || !editingPlaylist.title.trim()) return
     const token = await getToken()
-    await fetch(`/api/admin/courses/${editingPlaylist.courseId}/playlists/${editingPlaylist.playlistId}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }, body: JSON.stringify({ title: editingPlaylist.title }) })
+    await fetch(`/api/admin/courses/${editingPlaylist.courseId}/playlists/${editingPlaylist.playlistId}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ title: editingPlaylist.title })
+    })
     const cId = editingPlaylist.courseId; setEditingPlaylist(null); loadPlaylists(cId)
   }
 
@@ -141,7 +176,11 @@ export default function AdminCoursesPage() {
     if (!vf?.title || !vf?.bunnyVideoId) return
     const token = await getToken()
     const currentCount = playlists[courseId]?.find(p => p.id === playlistId)?.videos?.length || 0
-    await fetch(`/api/admin/courses/${courseId}/playlists/${playlistId}/videos`, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }, body: JSON.stringify({ title: vf.title, bunnyVideoId: vf.bunnyVideoId, duration: Number(vf.duration) || 0, isFreePreview: vf.isFreePreview || false, order: currentCount }) })
+    await fetch(`/api/admin/courses/${courseId}/playlists/${playlistId}/videos`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ title: vf.title, bunnyVideoId: vf.bunnyVideoId, duration: Number(vf.duration) || 0, isFreePreview: vf.isFreePreview || false, order: currentCount })
+    })
     setNewVideoForm(prev => ({ ...prev, [key]: emptyVideoForm })); loadPlaylists(courseId)
   }
 
@@ -149,7 +188,11 @@ export default function AdminCoursesPage() {
     if (!editingVideo) return
     const { courseId, playlistId, videoId, form: vf } = editingVideo
     const token = await getToken()
-    await fetch(`/api/admin/courses/${courseId}/playlists/${playlistId}/videos?videoId=${videoId}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }, body: JSON.stringify({ title: vf.title, bunnyVideoId: vf.bunnyVideoId, duration: Number(vf.duration) || 0, isFreePreview: vf.isFreePreview }) })
+    await fetch(`/api/admin/courses/${courseId}/playlists/${playlistId}/videos?videoId=${videoId}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ title: vf.title, bunnyVideoId: vf.bunnyVideoId, duration: Number(vf.duration) || 0, isFreePreview: vf.isFreePreview })
+    })
     setEditingVideo(null); loadPlaylists(courseId)
   }
 
@@ -186,7 +229,9 @@ export default function AdminCoursesPage() {
                   {expandedCourse === course.id ? <ChevronDown className="w-5 h-5" /> : <ChevronRight className="w-5 h-5" />}
                 </button>
                 <div className="w-16 h-10 bg-dark-600 rounded-lg overflow-hidden flex-shrink-0">
-                  {course.thumbnailUrl ? <img src={course.thumbnailUrl} alt="" className="w-full h-full object-cover" /> : <div className="w-full h-full bg-brand-500/10 flex items-center justify-center"><Video className="w-4 h-4 text-brand-500/50" /></div>}
+                  {course.thumbnailUrl
+                    ? <img src={course.thumbnailUrl} alt="" className="w-full h-full object-cover" />
+                    : <div className="w-full h-full bg-brand-500/10 flex items-center justify-center"><Video className="w-4 h-4 text-brand-500/50" /></div>}
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-white font-semibold text-sm truncate">{course.title}</p>
@@ -239,13 +284,16 @@ export default function AdminCoursesPage() {
 
                         return (
                           <div key={playlist.id} className="bg-dark-800 border border-dark-600 rounded-xl overflow-hidden">
-                            {/* Playlist header */}
                             <div className="flex items-center gap-3 px-4 py-3 border-b border-dark-700">
                               <GripVertical className="w-4 h-4 text-gray-600 flex-shrink-0" />
                               {isEditingPl ? (
                                 <>
-                                  <input value={editingPlaylist?.title ?? ''} onChange={e => setEditingPlaylist(p => p ? { ...p, title: e.target.value } : p)} autoFocus
-                                    className="flex-1 bg-dark-700 border border-brand-500 rounded-lg px-2 py-1 text-white text-sm focus:outline-none" />
+                                  <input
+                                    value={editingPlaylist?.title ?? ''}
+                                    onChange={e => setEditingPlaylist(p => p ? { ...p, title: e.target.value } : p)}
+                                    autoFocus
+                                    className="flex-1 bg-dark-700 border border-brand-500 rounded-lg px-2 py-1 text-white text-sm focus:outline-none"
+                                  />
                                   <button onClick={saveEditPlaylist} className="text-green-400 hover:text-green-300 p-1"><Check className="w-4 h-4" /></button>
                                   <button onClick={() => setEditingPlaylist(null)} className="text-gray-500 hover:text-white p-1"><X className="w-4 h-4" /></button>
                                 </>
@@ -259,7 +307,6 @@ export default function AdminCoursesPage() {
                               )}
                             </div>
 
-                            {/* Videos */}
                             <div className="divide-y divide-dark-700">
                               {(playlist.videos || []).map((video: any) => {
                                 const isEditingV = editingVideo?.videoId === video.id
@@ -268,16 +315,34 @@ export default function AdminCoursesPage() {
                                     {isEditingV ? (
                                       <div className="px-4 py-3 bg-dark-900/60 space-y-2">
                                         <div className="grid grid-cols-2 gap-2">
-                                          <input value={editingVideo?.form.title ?? ''} onChange={e => setEditingVideo(p => p ? { ...p, form: { ...p.form, title: e.target.value } } : p)} placeholder="Video title"
-                                            className="bg-dark-700 border border-brand-500 rounded-lg px-3 py-2 text-white text-xs focus:outline-none" />
-                                          <input value={editingVideo?.form.bunnyVideoId ?? ''} onChange={e => setEditingVideo(p => p ? { ...p, form: { ...p.form, bunnyVideoId: e.target.value } } : p)} placeholder="Bunny Video ID"
-                                            className="bg-dark-700 border border-brand-500 rounded-lg px-3 py-2 text-white text-xs font-mono focus:outline-none" />
+                                          <input
+                                            value={editingVideo?.form.title ?? ''}
+                                            onChange={e => setEditingVideo(p => p ? { ...p, form: { ...p.form, title: e.target.value } } : p)}
+                                            placeholder="Video title"
+                                            className="bg-dark-700 border border-brand-500 rounded-lg px-3 py-2 text-white text-xs focus:outline-none"
+                                          />
+                                          <input
+                                            value={editingVideo?.form.bunnyVideoId ?? ''}
+                                            onChange={e => setEditingVideo(p => p ? { ...p, form: { ...p.form, bunnyVideoId: e.target.value } } : p)}
+                                            placeholder="Bunny Video ID"
+                                            className="bg-dark-700 border border-brand-500 rounded-lg px-3 py-2 text-white text-xs font-mono focus:outline-none"
+                                          />
                                         </div>
                                         <div className="flex items-center gap-2">
-                                          <input type="number" value={editingVideo?.form.duration ?? ''} onChange={e => setEditingVideo(p => p ? { ...p, form: { ...p.form, duration: e.target.value } } : p)} placeholder="Duration (min)"
-                                            className="w-40 bg-dark-700 border border-brand-500 rounded-lg px-3 py-2 text-white text-xs focus:outline-none" />
+                                          <input
+                                            type="number"
+                                            value={editingVideo?.form.duration ?? ''}
+                                            onChange={e => setEditingVideo(p => p ? { ...p, form: { ...p.form, duration: e.target.value } } : p)}
+                                            placeholder="Duration (min)"
+                                            className="w-40 bg-dark-700 border border-brand-500 rounded-lg px-3 py-2 text-white text-xs focus:outline-none"
+                                          />
                                           <label className="flex items-center gap-1.5 text-gray-400 text-xs cursor-pointer">
-                                            <input type="checkbox" checked={editingVideo?.form.isFreePreview ?? false} onChange={e => setEditingVideo(p => p ? { ...p, form: { ...p.form, isFreePreview: e.target.checked } } : p)} className="accent-brand-500" />
+                                            <input
+                                              type="checkbox"
+                                              checked={editingVideo?.form.isFreePreview ?? false}
+                                              onChange={e => setEditingVideo(p => p ? { ...p, form: { ...p.form, isFreePreview: e.target.checked } } : p)}
+                                              className="accent-brand-500"
+                                            />
                                             Free preview
                                           </label>
                                           <div className="ml-auto flex gap-2">
@@ -302,7 +367,6 @@ export default function AdminCoursesPage() {
                               })}
                             </div>
 
-                            {/* Add video form */}
                             <div className="px-4 py-3 bg-dark-900/50 border-t border-dark-700">
                               <p className="text-gray-500 text-xs font-medium mb-2">Add video</p>
                               <div className="grid grid-cols-2 gap-2 mb-2">
@@ -337,7 +401,10 @@ export default function AdminCoursesPage() {
 
       <Modal isOpen={modalOpen} onClose={() => setModalOpen(false)} title={editCourse ? 'Edit Course' : 'Create New Course'}>
         <div className="space-y-4">
-          {[{ label: 'Course Title', key: 'title', placeholder: 'e.g. Options Trading — Zero to Hero' }, { label: 'Short Description', key: 'shortDescription', placeholder: 'One-line summary (shown on cards)' }].map(({ label, key, placeholder }) => (
+          {[
+            { label: 'Course Title', key: 'title', placeholder: 'e.g. Options Trading — Zero to Hero' },
+            { label: 'Short Description', key: 'shortDescription', placeholder: 'One-line summary (shown on cards)' }
+          ].map(({ label, key, placeholder }) => (
             <div key={key}>
               <label className="block text-sm font-medium text-gray-300 mb-1.5">{label}</label>
               <input value={form[key as keyof CourseFormData]} onChange={e => setForm(p => ({ ...p, [key]: e.target.value }))} placeholder={placeholder}
@@ -385,7 +452,6 @@ export default function AdminCoursesPage() {
               </div>
             </div>
           </div>
-          {/* Extra fields */}
           <div>
             <label className="block text-sm font-medium text-gray-300 mb-1.5">Instructor Name</label>
             <input value={form.instructor} onChange={e => setForm(p => ({ ...p, instructor: e.target.value }))} placeholder="e.g. Pooja Sharma"
