@@ -67,10 +67,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             setUser({ ...newUser, createdAt: new Date().toISOString() } as User)
           } else {
             const data = userDoc.data()
-            if (isAdminEmail(fbUser.email) && data.role !== 'admin') {
+            const shouldBeAdmin = isAdminEmail(fbUser.email)
+            if (shouldBeAdmin && data.role !== 'admin') {
               await setDoc(userDocRef, { role: 'admin' }, { merge: true })
             }
-            setUser({ uid: fbUser.uid, ...data } as User)
+            setUser({ uid: fbUser.uid, ...data, role: shouldBeAdmin ? 'admin' : data.role } as User)
           }
         } else {
           setUser(null)

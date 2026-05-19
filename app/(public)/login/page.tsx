@@ -37,7 +37,8 @@ export default function LoginPage({ searchParams }: { searchParams: { redirect?:
     setError('')
     try {
       await signInWithGoogle()
-      router.push(redirectTo)
+      // Hard redirect ensures cookie is sent and auth state is fresh
+      window.location.href = redirectTo
     } catch (e: any) {
       if (e.code !== 'auth/popup-closed-by-user' && e.code !== 'auth/cancelled-popup-request') {
         setError(e?.code || 'Sign-in failed. Please try again.')
