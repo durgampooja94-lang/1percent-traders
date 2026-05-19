@@ -1,7 +1,7 @@
 'use client'
 import { useState } from 'react'
 import Link from 'next/link'
-import { usePathname } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
 import { useAuth } from '@/hooks/useAuth'
 import { LayoutDashboard, BookOpen, User, LogOut, TrendingUp, Menu } from 'lucide-react'
 import { clsx } from 'clsx'
@@ -30,7 +30,13 @@ const navItems = [
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const { user, logout } = useAuth()
   const pathname = usePathname()
+  const router = useRouter()
   const [sidebarOpen, setSidebarOpen] = useState(false)
+
+  const handleLogout = async () => {
+    await logout()
+    router.push('/')
+  }
 
   return (
     <div className="min-h-screen bg-dark-900 flex">
@@ -89,7 +95,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
         {/* Sign out */}
         <div className="px-3 py-4 border-t border-dark-600">
-          <button onClick={logout}
+          <button onClick={handleLogout}
             className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-red-400 hover:bg-dark-700 transition-all">
             <LogOut className="w-4 h-4" /> Sign Out
           </button>
