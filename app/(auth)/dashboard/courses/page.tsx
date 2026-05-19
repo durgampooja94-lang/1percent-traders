@@ -1,7 +1,5 @@
 'use client'
 import { useState, useEffect } from 'react'
-import { collection, query, where, getDocs, doc, getDoc } from 'firebase/firestore'
-import { db } from '@/lib/firebase'
 import { useAuth } from '@/hooks/useAuth'
 import CourseCard from '@/components/course/CourseCard'
 import { Spinner } from '@/components/ui/index'
@@ -10,7 +8,7 @@ import { BookOpen, ArrowRight } from 'lucide-react'
 import Link from 'next/link'
 
 export default function MyCoursesPage() {
-  const { user, loading: authLoading } = useAuth()
+  const { user, loading: authLoading, getToken } = useAuth()
   const [courses, setCourses] = useState<Course[]>([])
   const [loading, setLoading] = useState(true)
 
@@ -18,25 +16,12 @@ export default function MyCoursesPage() {
     if (!user) return
     async function fetchPurchases() {
       try {
-        const ordersQuery = query(
-          collection(db, 'orders'),
-          where('userId', '==', user!.uid),
-          where('status', '==', 'paid')
-        )
-        const ordersSnap = await getDocs(ordersQuery)
-        const allCourseIds = ordersSnap.docs.flatMap(d => {
-          const data = d.data()
-          return data.courseIds || (data.courseId ? [data.courseId] : [])
+        const token = await getToken()
+        const res = await fetch('/api/user/courses', {
+          headers: { Authorization: `Bearer ${token}` }
         })
-        const uniqueCourseIds = Array.from(new Set(allCourseIds)) as string[]
-        const courseData = await Promise.all(
-          uniqueCourseIds.map(id => getDoc(doc(db, 'courses', id)))
-        )
-        setCourses(
-          courseData
-            .filter(d => d.exists())
-            .map(d => ({ id: d.id, ...d.data() } as Course))
-        )
+        const data = await res.json()
+        setCourses(data.courses || [])
       } catch (e) {
         console.error(e)
       } finally {
