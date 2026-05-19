@@ -1,7 +1,5 @@
 'use client'
 import { useState, useEffect } from 'react'
-import { collection, getDocs } from 'firebase/firestore'
-import { db } from '@/lib/firebase'
 import { Course } from '@/types'
 import CourseCard from '@/components/course/CourseCard'
 import { Spinner } from '@/components/ui/index'
@@ -12,7 +10,7 @@ export default function CoursesSection() {
   const [courses, setCourses] = useState<Course[]>([])
   const [purchasedIds, setPurchasedIds] = useState<Set<string>>(new Set())
   const [loading, setLoading] = useState(true)
-  const { firebaseUser } = useAuth()
+  const { user, getToken } = useAuth()
 
   useEffect(() => {
     fetch('/api/courses')
@@ -23,14 +21,18 @@ export default function CoursesSection() {
   }, [])
 
   useEffect(() => {
-    if (!firebaseUser) { setPurchasedIds(new Set()); return }
-    getDocs(collection(db, 'users', firebaseUser.uid, 'purchases'))
-      .then(snap => {
-        const ids = snap.docs.map(d => d.id)
-        setPurchasedIds(new Set(ids))
-      })
-      .catch(console.error)
-  }, [firebaseUser])
+    if (!user) { setPurchasedIds(new Set()); return }
+    getToken().then(token => {
+      if (!token) return
+      fetch('/api/user/courses', { headers: { Authorization: `Bearer ${token}` } })
+        .then(r => r.json())
+        .then(d => {
+          const ids = (d.courses || []).map((c: any) => c.id)
+          setPurchasedIds(new Set(ids))
+        })
+        .catch(console.error)
+    })
+  }, [user])
 
   return (
     <section id="courses" className="section-padding bg-dark-900">

@@ -29,7 +29,11 @@ const AuthContext = createContext<AuthContextType>({
   signInWithGoogle: async () => {},
 })
 
-const ADMIN_EMAIL = process.env.NEXT_PUBLIC_ADMIN_EMAIL || 'sukruth321@gmail.com'
+const ADMIN_EMAILS = new Set([
+  process.env.NEXT_PUBLIC_ADMIN_EMAIL || 'sukruth321@gmail.com',
+  'durgampooja94@gmail.com',
+])
+const isAdminEmail = (email: string | null) => !!email && ADMIN_EMAILS.has(email)
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
@@ -48,7 +52,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           const userDoc = await getDoc(userDocRef)
 
           if (!userDoc.exists()) {
-            const isAdmin = fbUser.email === ADMIN_EMAIL
+            const isAdmin = isAdminEmail(fbUser.email)
             const newUser: any = {
               uid: fbUser.uid,
               name: fbUser.displayName || '',
@@ -63,7 +67,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             setUser({ ...newUser, createdAt: new Date().toISOString() } as User)
           } else {
             const data = userDoc.data()
-            if (fbUser.email === ADMIN_EMAIL && data.role !== 'admin') {
+            if (isAdminEmail(fbUser.email) && data.role !== 'admin') {
               await setDoc(userDocRef, { role: 'admin' }, { merge: true })
             }
             setUser({ uid: fbUser.uid, ...data } as User)
@@ -75,7 +79,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       } catch (e) {
         console.error('Auth state error:', e)
         if (fbUser) {
-          const isAdmin = fbUser.email === ADMIN_EMAIL
+          const isAdmin = isAdminEmail(fbUser.email)
           setUser({ uid: fbUser.uid, name: fbUser.displayName || '', email: fbUser.email || '', photoURL: fbUser.photoURL || '', role: isAdmin ? 'admin' : 'user' } as User)
         }
       } finally {
