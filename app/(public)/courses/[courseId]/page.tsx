@@ -26,6 +26,7 @@ export default function CourseDetailPage() {
   const [loading, setLoading] = useState(true)
   const [isPurchased, setIsPurchased] = useState(false)
   const [expandedPlaylist, setExpandedPlaylist] = useState<string | null>(null)
+  const [previewVideo, setPreviewVideo] = useState<{ title: string; bunnyVideoId: string } | null>(null)
 
   useEffect(() => {
     async function load() {
@@ -54,10 +55,12 @@ export default function CourseDetailPage() {
   )
   if (!course) return null
 
+  const libraryId = process.env.NEXT_PUBLIC_BUNNY_LIBRARY_ID
   const inCart = isInCart(courseId)
   const totalVideos = playlists.reduce((acc, p) => acc + (p.videos?.length || 0), 0)
 
   return (
+    <>
     <div className="min-h-screen bg-dark-900">
       <Navbar />
       <div className="pt-16">
@@ -197,25 +200,25 @@ export default function CourseDetailPage() {
                     {expandedPlaylist === playlist.id && (
                       <div className="divide-y divide-dark-700 border-t border-dark-700">
                         {(playlist.videos as any[] || []).map((video: any) => (
-                          <div key={video.id} className="flex items-center gap-3 px-5 py-3">
-                            {video.isFreePreview ? (
-                              <Play className="w-4 h-4 text-brand-400 flex-shrink-0" />
-                            ) : (
-                              <Lock className="w-4 h-4 text-gray-600 flex-shrink-0" />
-                            )}
-                            <span className={clsx('text-sm flex-1', video.isFreePreview ? 'text-brand-300' : 'text-gray-400')}>
-                              {video.title}
-                            </span>
-                            {video.isFreePreview && (
+                          video.isFreePreview ? (
+                            <button
+                              key={video.id}
+                              onClick={() => setPreviewVideo({ title: video.title, bunnyVideoId: video.bunnyVideoId })}
+                              className="w-full flex items-center gap-3 px-5 py-3 hover:bg-dark-700 transition-colors text-left group"
+                            >
+                              <Play className="w-4 h-4 text-brand-400 flex-shrink-0 group-hover:scale-110 transition-transform" />
+                              <span className="text-sm flex-1 text-brand-300">{video.title}</span>
                               <span className="text-xs text-brand-400 font-medium bg-brand-500/10 px-2 py-0.5 rounded-full">Preview</span>
-                            )}
-                            {!video.isFreePreview && !isPurchased && (
-                              <Lock className="w-3.5 h-3.5 text-gray-600" />
-                            )}
-                            <span className="text-gray-600 text-xs">
-                              {video.duration || 0} min
-                            </span>
-                          </div>
+                              <span className="text-gray-600 text-xs">{video.duration || 0} min</span>
+                            </button>
+                          ) : (
+                            <div key={video.id} className="flex items-center gap-3 px-5 py-3">
+                              <Lock className="w-4 h-4 text-gray-600 flex-shrink-0" />
+                              <span className="text-sm flex-1 text-gray-400">{video.title}</span>
+                              {!isPurchased && <Lock className="w-3.5 h-3.5 text-gray-600" />}
+                              <span className="text-gray-600 text-xs">{video.duration || 0} min</span>
+                            </div>
+                          )
                         ))}
                       </div>
                     )}
@@ -227,5 +230,34 @@ export default function CourseDetailPage() {
         </div>
       </div>
     </div>
+
+    {/* Free preview modal */}
+    {previewVideo && (
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm"
+        onClick={() => setPreviewVideo(null)}>
+        <div className="w-full max-w-3xl bg-dark-900 rounded-2xl overflow-hidden shadow-2xl"
+          onClick={e => e.stopPropagation()}>
+          <div className="flex items-center justify-between px-5 py-3 bg-dark-800 border-b border-dark-600">
+            <span className="text-white font-semibold text-sm truncate">{previewVideo.title}</span>
+            <button onClick={() => setPreviewVideo(null)}
+              className="text-gray-400 hover:text-white text-lg font-bold ml-4 flex-shrink-0">✕</button>
+          </div>
+          <div className="relative w-full" style={{ paddingTop: '56.25%' }}>
+            {previewVideo.bunnyVideoId && libraryId ? (
+              <iframe
+                src={`https://iframe.mediadelivery.net/embed/${libraryId}/${previewVideo.bunnyVideoId}?autoplay=true&responsive=true`}
+                className="absolute inset-0 w-full h-full"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                allowFullScreen
+                style={{ border: 'none' }}
+              />
+            ) : (
+              <div className="absolute inset-0 flex items-center justify-center text-gray-400">Video unavailable</div>
+            )}
+          </div>
+        </div>
+      </div>
+    )}
+    </>
   )
 }
