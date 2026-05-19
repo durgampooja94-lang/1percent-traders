@@ -27,9 +27,9 @@ export default function DashboardPage() {
         const ordersSnap = await getDocs(
           query(collection(db, 'orders'), where('userId', '==', user!.uid), where('status', '==', 'paid'))
         )
-        const courseIds = [...new Set(
+        const courseIds = Array.from(new Set(
           ordersSnap.docs.flatMap(d => d.data().courseIds || (d.data().courseId ? [d.data().courseId] : []))
-        )] as string[]
+        )) as string[]
         const courseData = await Promise.all(courseIds.map(id => getDoc(doc(db, 'courses', id))))
         setCourses(courseData.filter(d => d.exists()).map(d => ({ id: d.id, ...d.data() } as Course)))
       } catch (e) { console.error(e) }
