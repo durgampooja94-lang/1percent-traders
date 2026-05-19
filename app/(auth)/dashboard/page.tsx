@@ -1,6 +1,6 @@
 'use client'
 import { useState, useEffect } from 'react'
-import { collection, getDocs, doc, getDoc } from 'firebase/firestore'
+import { collection, getDocs, doc, getDoc, query, where } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
 import { useAuth } from '@/hooks/useAuth'
 import { useRouter } from 'next/navigation'
@@ -24,8 +24,12 @@ export default function DashboardPage() {
     if (!user) return
     async function fetchPurchases() {
       try {
-        const purchasesSnap = await getDocs(collection(db, 'users', user!.uid, 'purchases'))
-        const courseIds = purchasesSnap.docs.map(d => d.id)
+        const ordersSnap = await getDocs(
+          query(collection(db, 'orders'), where('userId', '==', user!.uid), where('status', '==', 'paid'))
+        )
+        const courseIds = [...new Set(
+          ordersSnap.docs.flatMap(d => d.data().courseIds || (d.data().courseId ? [d.data().courseId] : []))
+        )] as string[]
         const courseData = await Promise.all(courseIds.map(id => getDoc(doc(db, 'courses', id))))
         setCourses(courseData.filter(d => d.exists()).map(d => ({ id: d.id, ...d.data() } as Course)))
       } catch (e) { console.error(e) }
