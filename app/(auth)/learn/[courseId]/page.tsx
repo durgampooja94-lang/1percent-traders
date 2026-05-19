@@ -2,7 +2,7 @@
 // app/(auth)/learn/[courseId]/page.tsx
 import { useState, useEffect } from 'react'
 import { useParams, useRouter } from 'next/navigation'
-import { doc, getDoc, collection, getDocs, orderBy, query } from 'firebase/firestore'
+import { doc, getDoc, collection, getDocs, orderBy, query, where } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
 import { useAuth } from '@/hooks/useAuth'
 import VideoPlayer from '@/components/course/VideoPlayer'
@@ -11,7 +11,7 @@ import { Course, Playlist, Video, Progress } from '@/types'
 
 export default function LearnPage() {
   const { courseId } = useParams<{ courseId: string }>()
-  const { user, loading: authLoading, getToken } = useAuth()
+  const { user, loading: authLoading } = useAuth()
   const router = useRouter()
 
   const [course, setCourse] = useState<Course | null>(null)
@@ -30,12 +30,19 @@ export default function LearnPage() {
 
     async function load() {
       try {
-        // Check purchase
-        const token = await getToken()
-        const purchaseDoc = await getDoc(
-          doc(db, 'users', user!.uid, 'purchases', courseId)
+        // Check purchase via orders collection
+        const ordersSnap = await getDocs(
+          query(
+            collection(db, 'orders'),
+            where('userId', '==', user!.uid),
+            where('status', '==', 'paid')
+          )
         )
-        if (!purchaseDoc.exists()) {
+        const hasPurchased = ordersSnap.docs.some(d => {
+          const data = d.data()
+          return (data.courseIds || []).includes(courseId) || data.courseId === courseId
+        })
+        if (!hasPurchased) {
           router.push(`/courses/${courseId}`)
           return
         }
