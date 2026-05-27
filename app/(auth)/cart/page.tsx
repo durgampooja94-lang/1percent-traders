@@ -24,8 +24,13 @@ export default function CartPage() {
 
   const applyCoupon = () => {
     if (!coupon.trim()) return
-    if (coupon.toUpperCase() === 'TRADER10') {
+    const code = coupon.toUpperCase()
+    if (code === 'TRADER10') {
       setDiscount(Math.round(total * 0.1))
+      setCouponApplied(true)
+      setCouponError('')
+    } else if (code === 'FOREX60') {
+      setDiscount(Math.round(total * 0.6))
       setCouponApplied(true)
       setCouponError('')
     } else {
