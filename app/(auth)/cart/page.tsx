@@ -33,6 +33,10 @@ export default function CartPage() {
       setDiscount(Math.round(total * 0.6))
       setCouponApplied(true)
       setCouponError('')
+    } else if (code === 'FOREX100') {
+      setDiscount(total)
+      setCouponApplied(true)
+      setCouponError('')
     } else {
       setCouponError('Invalid or expired coupon code')
     }

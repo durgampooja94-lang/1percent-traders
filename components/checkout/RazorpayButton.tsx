@@ -37,6 +37,25 @@ export default function RazorpayButton({ amount, courseIds, couponCode }: Razorp
     setLoading(true)
     try {
       const token = await getToken()
+
+      // 100% coupon — skip Razorpay, enroll for free
+      if (amount === 0 && couponCode) {
+        const freeRes = await fetch('/api/razorpay/free-enroll', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+          body: JSON.stringify({ courseIds, couponCode }),
+        })
+        if (freeRes.ok) {
+          clearCart()
+          router.push('/payment')
+        } else {
+          const err = await freeRes.json()
+          alert('Enrollment error: ' + (err.error || 'Please try again.'))
+          setLoading(false)
+        }
+        return
+      }
+
       // Create Razorpay order
       const orderRes = await fetch('/api/razorpay/create-order', {
         method: 'POST',
@@ -66,7 +85,6 @@ export default function RazorpayButton({ amount, courseIds, couponCode }: Razorp
         },
         theme: { color: '#0EA5E9' },
         handler: async (response: any) => {
-          // Verify payment on server
           const verifyRes = await fetch('/api/razorpay/verify', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
@@ -109,7 +127,7 @@ export default function RazorpayButton({ amount, courseIds, couponCode }: Razorp
         className="text-dark-900 font-bold"
       >
         <CreditCard className="w-5 h-5 mr-2" />
-        Pay ₹{amount.toLocaleString()}
+        {amount === 0 ? 'Enroll for Free' : `Pay ₹${amount.toLocaleString()}`}
       </Button>
       <div className="flex items-center justify-center gap-2 text-gray-500 text-xs">
         <ShieldCheck className="w-3.5 h-3.5" />
