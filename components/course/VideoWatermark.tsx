@@ -43,8 +43,20 @@ export default function VideoWatermark({ label }: VideoWatermarkProps) {
 
   return (
     <div
-      className="absolute z-10 pointer-events-none select-none px-3 py-1.5 rounded-md bg-black/20 text-white text-xs sm:text-sm font-medium tracking-wide transition-all duration-1000 ease-in-out"
-      style={{ ...position, opacity: 0.25, textShadow: '0 1px 3px rgba(0,0,0,0.6)' }}
+      className="absolute pointer-events-none select-none px-3 py-1.5 rounded-md bg-black/20 text-white text-xs sm:text-sm font-medium tracking-wide transition-all duration-1000 ease-in-out"
+      style={{
+        ...position,
+        opacity: 0.3,
+        textShadow: '0 1px 3px rgba(0,0,0,0.6)',
+        // Force this onto its own compositor layer with a very high stacking
+        // order — plain z-index isn't always enough to sit visibly above a
+        // Bunny iframe's hardware-accelerated <video>, which some browsers
+        // (observed on Chrome/Windows) composite above sibling DOM layers
+        // regardless of z-index unless it's promoted like this too.
+        zIndex: 2147483647,
+        transform: 'translateZ(0)',
+        willChange: 'transform',
+      }}
     >
       {label}
     </div>

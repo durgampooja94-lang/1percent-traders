@@ -160,16 +160,16 @@ export default function VideoPlayer({
             style={{ paddingTop: 'min(56.25%, 75vh)' }}
             onContextMenu={(e) => e.preventDefault()}
           >
-            <div className="absolute inset-0">
+            <div className="absolute inset-0" style={{ isolation: 'isolate' }}>
               {embedUrl ? (
                 <>
                   <iframe
                     key={currentVideo.id}
                     src={embedUrl}
-                    className="w-full h-full"
+                    className="w-full h-full relative"
                     allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                     allowFullScreen
-                    style={{ border: 'none' }}
+                    style={{ border: 'none', zIndex: 0 }}
                   />
                   <VideoWatermark label={watermarkLabel} />
                 </>
