@@ -22,9 +22,16 @@ function LoginLogo() {
 export default function LoginPage({ searchParams }: { searchParams: { redirect?: string } }) {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
-  const { signInWithGoogle, user, loading: authLoading } = useAuth()
+  const { signInWithGoogle, user, loading: authLoading, authError, clearAuthError } = useAuth()
   const router = useRouter()
   const redirectTo = searchParams.redirect || '/dashboard'
+
+  useEffect(() => {
+    if (authError) {
+      setError(authError)
+      clearAuthError()
+    }
+  }, [authError])
 
   useEffect(() => {
     if (!authLoading && user) {

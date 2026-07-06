@@ -1,14 +1,15 @@
 'use client'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { useAuth } from '@/hooks/useAuth'
+import { getSessionId } from '@/lib/device'
 import VideoPlayer from '@/components/course/VideoPlayer'
 import { Spinner } from '@/components/ui/index'
 import { Course, Playlist, Video, Progress } from '@/types'
 
 export default function LearnPage() {
   const { courseId } = useParams<{ courseId: string }>()
-  const { user, loading: authLoading, getToken } = useAuth()
+  const { user, loading: authLoading, getToken, logout } = useAuth()
   const router = useRouter()
 
   const [course, setCourse] = useState<Course | null>(null)
@@ -17,6 +18,8 @@ export default function LearnPage() {
   const [progress, setProgress] = useState<Record<string, Progress>>({})
   const [loading, setLoading] = useState(true)
   const [authorized, setAuthorized] = useState(false)
+  const [embedUrl, setEmbedUrl] = useState<string | null>(null)
+  const refreshTimer = useRef<ReturnType<typeof setTimeout>>()
 
   useEffect(() => {
     if (!authLoading && !user) router.push(`/login?redirect=/learn/${courseId}`)
@@ -60,6 +63,44 @@ export default function LearnPage() {
     load()
   }, [user, courseId])
 
+  // Fetch a fresh token-authenticated embed URL whenever the video changes,
+  // and refresh it again shortly before it expires.
+  useEffect(() => {
+    if (!currentVideo || !courseId) return
+    let cancelled = false
+
+    async function loadSignedUrl(video: Video) {
+      const token = await getToken()
+      const sessionId = getSessionId()
+      const res = await fetch(
+        `/api/video/signed-url?videoId=${video.id}&courseId=${courseId}`,
+        { headers: { Authorization: `Bearer ${token}`, ...(sessionId ? { 'x-session-id': sessionId } : {}) } }
+      )
+
+      if (res.status === 401) {
+        await logout()
+        router.push('/login')
+        return
+      }
+      if (!res.ok || cancelled) return
+
+      const data = await res.json()
+      if (cancelled) return
+      setEmbedUrl(data.embedUrl)
+
+      const msUntilRefresh = Math.max((data.expiresAt - Math.floor(Date.now() / 1000) - 120) * 1000, 30000)
+      refreshTimer.current = setTimeout(() => loadSignedUrl(video), msUntilRefresh)
+    }
+
+    setEmbedUrl(null)
+    loadSignedUrl(currentVideo)
+
+    return () => {
+      cancelled = true
+      if (refreshTimer.current) clearTimeout(refreshTimer.current)
+    }
+  }, [currentVideo?.id, courseId])
+
   if (authLoading || loading) {
     return (
       <div className="min-h-screen bg-dark-900 flex items-center justify-center">
@@ -68,7 +109,7 @@ export default function LearnPage() {
     )
   }
 
-  if (!authorized || !course || !currentVideo) return null
+  if (!authorized || !course || !currentVideo || !user) return null
 
   return (
     <VideoPlayer
@@ -76,6 +117,8 @@ export default function LearnPage() {
       currentVideo={currentVideo}
       playlists={playlists}
       progress={progress}
+      embedUrl={embedUrl}
+      watermarkLabel={`${user.name} • ${user.phone || user.email || ''}`}
       onVideoSelect={setCurrentVideo}
     />
   )

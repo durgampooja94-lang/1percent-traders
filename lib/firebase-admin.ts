@@ -48,3 +48,44 @@ export async function isAdmin(token: string): Promise<boolean> {
   const role = await getUserRole(decoded.uid)
   return role === 'admin'
 }
+
+export type LoginHistoryEvent = 'login' | 'kicked' | 'revoked_by_admin' | 'logout'
+
+export function parseDeviceLabel(userAgent: string | null): string {
+  if (!userAgent) return 'Unknown device'
+  const ua = userAgent
+  let os = 'Unknown OS'
+  if (/Windows/i.test(ua)) os = 'Windows'
+  else if (/iPhone|iPad/i.test(ua)) os = 'iOS'
+  else if (/Android/i.test(ua)) os = 'Android'
+  else if (/Mac OS X/i.test(ua)) os = 'macOS'
+  else if (/Linux/i.test(ua)) os = 'Linux'
+
+  let browser = 'Unknown browser'
+  if (/Edg\//i.test(ua)) browser = 'Edge'
+  else if (/Chrome\//i.test(ua)) browser = 'Chrome'
+  else if (/Firefox\//i.test(ua)) browser = 'Firefox'
+  else if (/Safari\//i.test(ua)) browser = 'Safari'
+
+  return `${browser} on ${os}`
+}
+
+export async function logLoginEvent(
+  uid: string,
+  event: LoginHistoryEvent,
+  data: { deviceId?: string; deviceLabel?: string; ip?: string; userAgent?: string; sessionId?: string }
+) {
+  await getAdminDb()
+    .collection('users')
+    .doc(uid)
+    .collection('loginHistory')
+    .add({
+      event,
+      deviceId: data.deviceId || null,
+      deviceLabel: data.deviceLabel || null,
+      ip: data.ip || null,
+      userAgent: data.userAgent || null,
+      sessionId: data.sessionId || null,
+      createdAt: new Date().toISOString(),
+    })
+}

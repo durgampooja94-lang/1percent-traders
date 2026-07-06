@@ -2,7 +2,7 @@
 export const dynamic = 'force-dynamic'
 import { NextRequest, NextResponse } from 'next/server'
 import { verifyToken, getAdminDb } from '@/lib/firebase-admin'
-import { getBunnyEmbedUrl } from '@/lib/bunny'
+import { getSignedEmbedUrl } from '@/lib/bunny'
 
 export async function GET(req: NextRequest) {
   try {
@@ -11,6 +11,16 @@ export async function GET(req: NextRequest) {
 
     const decoded = await verifyToken(token)
     if (!decoded) return NextResponse.json({ error: 'Invalid token' }, { status: 401 })
+
+    // Defense in depth for single-device enforcement: reject playback from a
+    // device that's been kicked out, even if its local Firestore listener
+    // hasn't fired yet.
+    const sessionId = req.headers.get('x-session-id')
+    const userDoc = await getAdminDb().collection('users').doc(decoded.uid).get()
+    const activeSessionId = userDoc.data()?.activeSessionId
+    if (activeSessionId && sessionId !== activeSessionId) {
+      return NextResponse.json({ error: 'Session expired on this device' }, { status: 401 })
+    }
 
     const { searchParams } = new URL(req.url)
     const videoId = searchParams.get('videoId')
@@ -66,10 +76,10 @@ export async function GET(req: NextRequest) {
       }
     }
 
-    // Generate Bunny.net embed URL
-    const embedUrl = getBunnyEmbedUrl(bunnyVideoId)
+    // Generate a token-authenticated, time-limited Bunny.net embed URL
+    const { embedUrl, expiresAt } = getSignedEmbedUrl(bunnyVideoId, 7200)
 
-    return NextResponse.json({ embedUrl, bunnyVideoId })
+    return NextResponse.json({ embedUrl, expiresAt, bunnyVideoId })
   } catch (error) {
     console.error('Signed URL error:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })

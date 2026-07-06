@@ -11,7 +11,13 @@ export async function GET(req: NextRequest) {
   const snap = await getAdminDb().collection('users').orderBy('createdAt', 'desc').limit(200).get()
   const users = await Promise.all(snap.docs.map(async d => {
     const purchases = await getAdminDb().collection('users').doc(d.id).collection('purchases').get()
-    return { id: d.id, ...d.data(), purchaseCount: purchases.size }
+    const data = d.data()
+    return {
+      id: d.id,
+      ...data,
+      purchaseCount: purchases.size,
+      hasActiveSession: !!data.activeDeviceId && data.activeDeviceId !== 'revoked_by_admin',
+    }
   }))
   return NextResponse.json({ users })
 }

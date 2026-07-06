@@ -38,6 +38,26 @@ export function getBunnyEmbedUrl(videoId: string): string {
 }
 
 /**
+ * Get a token-authenticated embed URL for Bunny.net Stream (iframe view).
+ * Formula per Bunny docs: token = SHA256_HEX(tokenSecret + videoId + expires)
+ * Requires "Token Authentication" to be enabled on the Stream library, with
+ * its Token Authentication Key matching BUNNY_TOKEN_SECRET.
+ */
+export function getSignedEmbedUrl(
+  videoId: string,
+  expiresInSeconds: number = 7200
+): { embedUrl: string; expiresAt: number } {
+  const expires = Math.floor(Date.now() / 1000) + expiresInSeconds
+  const token = crypto
+    .createHash('sha256')
+    .update(`${BUNNY_TOKEN_SECRET}${videoId}${expires}`)
+    .digest('hex')
+
+  const embedUrl = `${getBunnyEmbedUrl(videoId)}?token=${token}&expires=${expires}&autoplay=false&responsive=true`
+  return { embedUrl, expiresAt: expires }
+}
+
+/**
  * Get video thumbnail from Bunny.net
  */
 export function getBunnyThumbnail(videoId: string): string {

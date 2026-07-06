@@ -4,6 +4,7 @@ import { useState, useRef, useEffect } from 'react'
 import { RecaptchaVerifier, signInWithPhoneNumber, ConfirmationResult } from 'firebase/auth'
 import { doc, setDoc, getDoc, serverTimestamp } from 'firebase/firestore'
 import { auth, db } from '@/lib/firebase'
+import { establishSession } from '@/lib/device'
 import { useRouter } from 'next/navigation'
 import Button from '@/components/ui/Button'
 import { Phone, Shield, ArrowRight, CheckCircle } from 'lucide-react'
@@ -70,6 +71,7 @@ export default function OtpForm({ redirectTo = '/dashboard' }: { redirectTo?: st
         setIsNewUser(true)
         setStep('name')
       } else {
+        await establishSession(token)
         router.push(redirectTo)
       }
     } catch {
@@ -94,6 +96,7 @@ export default function OtpForm({ redirectTo = '/dashboard' }: { redirectTo?: st
         role: 'user',
         createdAt: serverTimestamp(),
       })
+      await establishSession(token)
       router.push(redirectTo)
     } catch {
       setError('Failed to save profile. Please try again.')

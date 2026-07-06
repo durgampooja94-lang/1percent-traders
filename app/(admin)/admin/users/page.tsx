@@ -1,8 +1,8 @@
 'use client'
 // app/(admin)/admin/users/page.tsx
-import { useState, useEffect } from 'react'
+import { useState, useEffect, Fragment } from 'react'
 import { useAuth } from '@/hooks/useAuth'
-import { Search, Users, Phone, Calendar, ShoppingBag, ChevronUp, ChevronDown } from 'lucide-react'
+import { Search, Users, Phone, Calendar, ShoppingBag, ChevronUp, ChevronDown, Monitor, ShieldOff, History } from 'lucide-react'
 
 interface AdminUser {
   id: string
@@ -12,6 +12,25 @@ interface AdminUser {
   role: string
   createdAt: any
   purchaseCount: number
+  activeDeviceLabel?: string
+  lastLoginAt?: string
+  lastLoginIp?: string
+  hasActiveSession?: boolean
+}
+
+interface LoginHistoryEntry {
+  id: string
+  event: 'login' | 'kicked' | 'revoked_by_admin' | 'logout'
+  deviceLabel?: string
+  ip?: string
+  createdAt: string
+}
+
+const EVENT_LABEL: Record<LoginHistoryEntry['event'], string> = {
+  login: 'Signed in',
+  kicked: 'Logged out (new device signed in)',
+  revoked_by_admin: 'Session revoked by admin',
+  logout: 'Signed out',
 }
 
 export default function AdminUsersPage() {
@@ -22,6 +41,46 @@ export default function AdminUsersPage() {
   const [search, setSearch] = useState('')
   const [sortBy, setSortBy] = useState<'createdAt' | 'purchaseCount'>('createdAt')
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc')
+  const [expandedUserId, setExpandedUserId] = useState<string | null>(null)
+  const [historyByUser, setHistoryByUser] = useState<Record<string, LoginHistoryEntry[]>>({})
+  const [historyLoading, setHistoryLoading] = useState<string | null>(null)
+  const [revoking, setRevoking] = useState<string | null>(null)
+
+  const toggleHistory = async (userId: string) => {
+    if (expandedUserId === userId) {
+      setExpandedUserId(null)
+      return
+    }
+    setExpandedUserId(userId)
+    if (historyByUser[userId]) return
+    setHistoryLoading(userId)
+    try {
+      const token = await getToken()
+      const res = await fetch(`/api/admin/users/${userId}/login-history`, {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+      const data = await res.json()
+      setHistoryByUser(prev => ({ ...prev, [userId]: data.history || [] }))
+    } catch (e) { console.error(e) }
+    finally { setHistoryLoading(null) }
+  }
+
+  const revokeSession = async (userId: string) => {
+    setRevoking(userId)
+    try {
+      const token = await getToken()
+      await fetch(`/api/admin/users/${userId}/revoke-session`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+      })
+      setUsers(prev => prev.map(u => u.id === userId ? { ...u, hasActiveSession: false } : u))
+      setHistoryByUser(prev => {
+        const { [userId]: _, ...rest } = prev
+        return rest
+      })
+    } catch (e) { console.error(e) }
+    finally { setRevoking(null) }
+  }
 
   useEffect(() => {
     async function fetchUsers() {
@@ -130,17 +189,25 @@ export default function AdminUsersPage() {
                   onClick={() => toggleSort('createdAt')}>
                   <span className="flex items-center gap-1"><Calendar className="w-3 h-3" /> Joined <SortIcon col="createdAt" /></span>
                 </th>
+                <th className="px-5 py-3.5 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">
+                  <span className="flex items-center gap-1"><Monitor className="w-3 h-3" /> Last Login</span>
+                </th>
+                <th className="px-5 py-3.5 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">Session</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-dark-700">
               {loading ? (
-                <tr><td colSpan={5} className="py-12 text-center">
+                <tr><td colSpan={7} className="py-12 text-center">
                   <div className="animate-spin w-6 h-6 border-2 border-brand-500 border-t-transparent rounded-full mx-auto" />
                 </td></tr>
               ) : filtered.length === 0 ? (
-                <tr><td colSpan={5} className="py-12 text-center text-gray-500 text-sm">No users found</td></tr>
+                <tr><td colSpan={7} className="py-12 text-center text-gray-500 text-sm">No users found</td></tr>
               ) : filtered.map(user => (
-                <tr key={user.id} className="hover:bg-dark-700/40 transition-colors">
+                <Fragment key={user.id}>
+                <tr
+                  className="hover:bg-dark-700/40 transition-colors cursor-pointer"
+                  onClick={() => toggleHistory(user.id)}
+                >
                   <td className="px-5 py-4">
                     <div className="flex items-center gap-3">
                       <div className="w-9 h-9 rounded-full bg-brand-gradient flex items-center justify-center text-white text-sm font-bold flex-shrink-0">
@@ -172,7 +239,59 @@ export default function AdminUsersPage() {
                       ? user.createdAt.toDate().toLocaleDateString('en-IN', { day:'2-digit', month:'short', year:'numeric' })
                       : '—'}
                   </td>
+                  <td className="px-5 py-4 text-xs text-gray-400">
+                    {user.lastLoginAt ? (
+                      <>
+                        <p>{user.activeDeviceLabel || 'Unknown device'}</p>
+                        <p className="text-gray-600">{new Date(user.lastLoginAt).toLocaleString('en-IN', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}</p>
+                      </>
+                    ) : '—'}
+                  </td>
+                  <td className="px-5 py-4" onClick={e => e.stopPropagation()}>
+                    <div className="flex items-center gap-2">
+                      <span className={`text-xs font-semibold px-2 py-1 rounded-full ${
+                        user.hasActiveSession ? 'bg-green-500/15 text-green-400' : 'bg-dark-600 text-gray-500'
+                      }`}>
+                        {user.hasActiveSession ? 'Active' : 'None'}
+                      </span>
+                      {user.hasActiveSession && (
+                        <button
+                          onClick={() => revokeSession(user.id)}
+                          disabled={revoking === user.id}
+                          className="flex items-center gap-1 text-xs text-red-400 hover:text-red-300 font-medium transition-colors disabled:opacity-50"
+                        >
+                          <ShieldOff className="w-3 h-3" /> {revoking === user.id ? 'Revoking…' : 'Revoke'}
+                        </button>
+                      )}
+                    </div>
+                  </td>
                 </tr>
+                {expandedUserId === user.id && (
+                  <tr className="bg-dark-900/60">
+                    <td colSpan={7} className="px-5 py-4">
+                      <div className="flex items-center gap-1.5 text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">
+                        <History className="w-3.5 h-3.5" /> Recent login activity
+                      </div>
+                      {historyLoading === user.id ? (
+                        <div className="animate-spin w-4 h-4 border-2 border-brand-500 border-t-transparent rounded-full" />
+                      ) : (historyByUser[user.id]?.length ?? 0) === 0 ? (
+                        <p className="text-xs text-gray-500">No login history yet.</p>
+                      ) : (
+                        <ul className="space-y-1.5">
+                          {historyByUser[user.id].map(entry => (
+                            <li key={entry.id} className="text-xs text-gray-400 flex flex-wrap items-center gap-2">
+                              <span className="text-gray-300 font-medium">{EVENT_LABEL[entry.event]}</span>
+                              <span>{entry.deviceLabel || 'Unknown device'}</span>
+                              {entry.ip && <span className="text-gray-600">{entry.ip}</span>}
+                              <span className="text-gray-600">{new Date(entry.createdAt).toLocaleString('en-IN', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      )}
+                    </td>
+                  </tr>
+                )}
+                </Fragment>
               ))}
             </tbody>
           </table>

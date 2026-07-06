@@ -1,21 +1,43 @@
 'use client'
 // components/course/VideoPlayer.tsx
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { CheckCircle, ChevronDown, ChevronRight, Play, ArrowLeft, List, X } from 'lucide-react'
 import { Course, Playlist, Video, Progress } from '@/types'
 import { clsx } from 'clsx'
+import VideoWatermark from './VideoWatermark'
 
 interface VideoPlayerProps {
   course: Course
   currentVideo: Video
   playlists: Playlist[]
   progress: Record<string, Progress>
+  embedUrl: string | null
+  watermarkLabel: string
   onVideoSelect: (video: Video) => void
 }
 
+// Blocks common devtools shortcuts and right-click while the learn page is
+// mounted. This is a best-effort deterrent, not real DRM — it cannot stop
+// someone determined to bypass client-side JS, and can't reach into Bunny's
+// cross-origin iframe content at all.
+function useBrowserProtections() {
+  useEffect(() => {
+    const blockKeys = (e: KeyboardEvent) => {
+      const key = e.key.toUpperCase()
+      const blocked =
+        key === 'F12' ||
+        (e.ctrlKey && e.shiftKey && (key === 'I' || key === 'J')) ||
+        (e.ctrlKey && key === 'U')
+      if (blocked) e.preventDefault()
+    }
+    window.addEventListener('keydown', blockKeys)
+    return () => window.removeEventListener('keydown', blockKeys)
+  }, [])
+}
+
 export default function VideoPlayer({
-  course, currentVideo, playlists, progress, onVideoSelect
+  course, currentVideo, playlists, progress, embedUrl, watermarkLabel, onVideoSelect
 }: VideoPlayerProps) {
   const [sidebarOpen, setSidebarOpen] = useState(true)
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false)
@@ -23,10 +45,7 @@ export default function VideoPlayer({
     () => playlists.length > 0 ? { [playlists[0].id]: true } : {}
   )
 
-  const libraryId = process.env.NEXT_PUBLIC_BUNNY_LIBRARY_ID
-  const embedUrl = currentVideo.bunnyVideoId && libraryId
-    ? `https://iframe.mediadelivery.net/embed/${libraryId}/${currentVideo.bunnyVideoId}?autoplay=false&responsive=true`
-    : null
+  useBrowserProtections()
 
   const togglePlaylist = (id: string) => {
     setExpandedPlaylists(prev => ({ ...prev, [id]: !prev[id] }))
@@ -136,17 +155,24 @@ export default function VideoPlayer({
         {/* Video Area */}
         <div className="flex-1 flex flex-col overflow-y-auto lg:overflow-hidden">
           {/* Video Embed */}
-          <div className="relative bg-black w-full" style={{ paddingTop: 'min(56.25%, 75vh)' }}>
+          <div
+            className="relative bg-black w-full"
+            style={{ paddingTop: 'min(56.25%, 75vh)' }}
+            onContextMenu={(e) => e.preventDefault()}
+          >
             <div className="absolute inset-0">
               {embedUrl ? (
-                <iframe
-                  key={currentVideo.id}
-                  src={embedUrl}
-                  className="w-full h-full"
-                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                  allowFullScreen
-                  style={{ border: 'none' }}
-                />
+                <>
+                  <iframe
+                    key={currentVideo.id}
+                    src={embedUrl}
+                    className="w-full h-full"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    allowFullScreen
+                    style={{ border: 'none' }}
+                  />
+                  <VideoWatermark label={watermarkLabel} />
+                </>
               ) : (
                 <div className="w-full h-full flex items-center justify-center">
                   <div className="text-center">
