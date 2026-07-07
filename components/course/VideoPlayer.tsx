@@ -2,7 +2,7 @@
 // components/course/VideoPlayer.tsx
 import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
-import { CheckCircle, ChevronDown, ChevronRight, Play, ArrowLeft, List, X } from 'lucide-react'
+import { CheckCircle, ChevronDown, ChevronRight, Play, ArrowLeft, List, X, Maximize, Minimize } from 'lucide-react'
 import { Course, Playlist, Video, Progress } from '@/types'
 import { clsx } from 'clsx'
 import VideoWatermark from './VideoWatermark'
@@ -36,31 +36,24 @@ function useBrowserProtections() {
   }, [])
 }
 
-// The Fullscreen API makes the requesting element (Bunny's <iframe>, since
-// its own player calls requestFullscreen() inside a cross-origin document)
-// the sole fullscreen element — siblings like our watermark are excluded
-// from what's displayed. Detect that and redirect fullscreen to our own
-// wrapper (which contains both the iframe and the watermark) instead.
-function useFullscreenWatermarkFix(containerRef: React.RefObject<HTMLElement>) {
+// Bunny's own fullscreen button makes the <iframe> itself the browser's
+// fullscreen element (its player runs inside a cross-origin document), which
+// excludes sibling DOM nodes like our watermark from what's displayed — and
+// there's no reliable, gesture-safe way to intercept and redirect that after
+// the fact (requestFullscreen() must run inside a direct user gesture; doing
+// it from a fullscreenchange/promise callback loses that and silently fails
+// in most browsers). So instead we expose our own fullscreen toggle, which
+// fullscreens our wrapper (iframe + watermark together) directly from a real
+// click — Bunny's native button still works as before, it just won't carry
+// the watermark into fullscreen.
+function useFullscreenToggle(containerRef: React.RefObject<HTMLElement>) {
+  const [isFullscreen, setIsFullscreen] = useState(false)
+
   useEffect(() => {
-    const getFullscreenElement = () =>
-      document.fullscreenElement || (document as any).webkitFullscreenElement || null
-
     const onFullscreenChange = () => {
-      const container = containerRef.current
-      const fsEl = getFullscreenElement()
-      if (!container || !fsEl) return
-
-      const isIframeFullscreen = fsEl.tagName === 'IFRAME' && container.contains(fsEl)
-      if (!isIframeFullscreen) return
-
-      const exit = document.exitFullscreen?.bind(document) || (document as any).webkitExitFullscreen?.bind(document)
-      const request = container.requestFullscreen?.bind(container) || (container as any).webkitRequestFullscreen?.bind(container)
-      if (!exit || !request) return
-
-      Promise.resolve(exit()).then(() => request()).catch(() => {})
+      const fsEl = document.fullscreenElement || (document as any).webkitFullscreenElement || null
+      setIsFullscreen(!!containerRef.current && fsEl === containerRef.current)
     }
-
     document.addEventListener('fullscreenchange', onFullscreenChange)
     document.addEventListener('webkitfullscreenchange', onFullscreenChange)
     return () => {
@@ -68,6 +61,21 @@ function useFullscreenWatermarkFix(containerRef: React.RefObject<HTMLElement>) {
       document.removeEventListener('webkitfullscreenchange', onFullscreenChange)
     }
   }, [containerRef])
+
+  const toggleFullscreen = () => {
+    const container = containerRef.current
+    if (!container) return
+    const fsEl = document.fullscreenElement || (document as any).webkitFullscreenElement || null
+    if (fsEl) {
+      const exit = document.exitFullscreen?.bind(document) || (document as any).webkitExitFullscreen?.bind(document)
+      exit?.()?.catch?.(() => {})
+    } else {
+      const request = container.requestFullscreen?.bind(container) || (container as any).webkitRequestFullscreen?.bind(container)
+      request?.()?.catch?.(() => {})
+    }
+  }
+
+  return { isFullscreen, toggleFullscreen }
 }
 
 export default function VideoPlayer({
@@ -81,7 +89,7 @@ export default function VideoPlayer({
   const videoAreaRef = useRef<HTMLDivElement>(null)
 
   useBrowserProtections()
-  useFullscreenWatermarkFix(videoAreaRef)
+  const { isFullscreen, toggleFullscreen } = useFullscreenToggle(videoAreaRef)
 
   const togglePlaylist = (id: string) => {
     setExpandedPlaylists(prev => ({ ...prev, [id]: !prev[id] }))
@@ -209,6 +217,13 @@ export default function VideoPlayer({
                     style={{ border: 'none', zIndex: 0 }}
                   />
                   <VideoWatermark label={watermarkLabel} />
+                  <button
+                    onClick={toggleFullscreen}
+                    title={isFullscreen ? 'Exit full screen' : 'Full screen (keeps watermark visible)'}
+                    className="absolute top-3 right-3 z-[2147483647] w-9 h-9 rounded-lg bg-black/50 hover:bg-black/70 text-white flex items-center justify-center transition-colors backdrop-blur-sm"
+                  >
+                    {isFullscreen ? <Minimize className="w-4 h-4" /> : <Maximize className="w-4 h-4" />}
+                  </button>
                 </>
               ) : (
                 <div className="w-full h-full flex items-center justify-center">
