@@ -1,6 +1,6 @@
 'use client'
 // components/course/VideoPlayer.tsx
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import { CheckCircle, ChevronDown, ChevronRight, Play, ArrowLeft, List, X } from 'lucide-react'
 import { Course, Playlist, Video, Progress } from '@/types'
@@ -36,6 +36,40 @@ function useBrowserProtections() {
   }, [])
 }
 
+// The Fullscreen API makes the requesting element (Bunny's <iframe>, since
+// its own player calls requestFullscreen() inside a cross-origin document)
+// the sole fullscreen element — siblings like our watermark are excluded
+// from what's displayed. Detect that and redirect fullscreen to our own
+// wrapper (which contains both the iframe and the watermark) instead.
+function useFullscreenWatermarkFix(containerRef: React.RefObject<HTMLElement>) {
+  useEffect(() => {
+    const getFullscreenElement = () =>
+      document.fullscreenElement || (document as any).webkitFullscreenElement || null
+
+    const onFullscreenChange = () => {
+      const container = containerRef.current
+      const fsEl = getFullscreenElement()
+      if (!container || !fsEl) return
+
+      const isIframeFullscreen = fsEl.tagName === 'IFRAME' && container.contains(fsEl)
+      if (!isIframeFullscreen) return
+
+      const exit = document.exitFullscreen?.bind(document) || (document as any).webkitExitFullscreen?.bind(document)
+      const request = container.requestFullscreen?.bind(container) || (container as any).webkitRequestFullscreen?.bind(container)
+      if (!exit || !request) return
+
+      Promise.resolve(exit()).then(() => request()).catch(() => {})
+    }
+
+    document.addEventListener('fullscreenchange', onFullscreenChange)
+    document.addEventListener('webkitfullscreenchange', onFullscreenChange)
+    return () => {
+      document.removeEventListener('fullscreenchange', onFullscreenChange)
+      document.removeEventListener('webkitfullscreenchange', onFullscreenChange)
+    }
+  }, [containerRef])
+}
+
 export default function VideoPlayer({
   course, currentVideo, playlists, progress, embedUrl, watermarkLabel, onVideoSelect
 }: VideoPlayerProps) {
@@ -44,8 +78,10 @@ export default function VideoPlayer({
   const [expandedPlaylists, setExpandedPlaylists] = useState<Record<string, boolean>>(
     () => playlists.length > 0 ? { [playlists[0].id]: true } : {}
   )
+  const videoAreaRef = useRef<HTMLDivElement>(null)
 
   useBrowserProtections()
+  useFullscreenWatermarkFix(videoAreaRef)
 
   const togglePlaylist = (id: string) => {
     setExpandedPlaylists(prev => ({ ...prev, [id]: !prev[id] }))
@@ -156,6 +192,7 @@ export default function VideoPlayer({
         <div className="flex-1 flex flex-col overflow-y-auto lg:overflow-hidden">
           {/* Video Embed */}
           <div
+            ref={videoAreaRef}
             className="relative bg-black w-full"
             style={{ paddingTop: 'min(56.25%, 75vh)' }}
             onContextMenu={(e) => e.preventDefault()}
