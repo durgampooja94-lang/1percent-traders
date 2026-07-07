@@ -229,10 +229,10 @@ export default function VideoPlayer({
                   <button
                     onClick={toggleFullscreen}
                     title={isFullscreen ? 'Exit full screen' : 'Full screen with watermark protection'}
-                    className="absolute top-3 right-3 z-[2147483647] flex items-center gap-2 rounded-lg bg-brand-500 hover:bg-brand-600 text-white text-xs sm:text-sm font-semibold px-3 py-2 shadow-lg transition-colors"
+                    className="absolute bottom-14 right-2 sm:bottom-16 sm:right-3 z-[2147483647] flex items-center gap-1.5 sm:gap-2 rounded-lg bg-brand-500 hover:bg-brand-600 text-white text-xs sm:text-sm font-semibold px-2.5 py-2 sm:px-3 shadow-lg transition-colors"
                   >
-                    {isFullscreen ? <Minimize className="w-4 h-4" /> : <Maximize className="w-4 h-4" />}
-                    <span>{isFullscreen ? 'Exit Full Screen' : 'Full Screen'}</span>
+                    {isFullscreen ? <Minimize className="w-4 h-4 shrink-0" /> : <Maximize className="w-4 h-4 shrink-0" />}
+                    <span className="hidden sm:inline">{isFullscreen ? 'Exit Full Screen' : 'Full Screen'}</span>
                   </button>
                 </>
               ) : (
