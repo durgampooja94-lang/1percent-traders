@@ -202,7 +202,16 @@ export default function VideoPlayer({
           <div
             ref={videoAreaRef}
             className="relative bg-black w-full"
-            style={{ paddingTop: 'min(56.25%, 75vh)' }}
+            style={
+              // The padding-top trick sizes this box by percentage of its own
+              // width, which conflicts with the browser's forced fullscreen
+              // sizing (position:fixed, inset:0) — left in place, the box
+              // ends up taller than the screen and the watermark's percentage
+              // position resolves against that oversized box, landing below
+              // the visible viewport. Drop the hack while fullscreen so the
+              // box is just a plain 100%-of-viewport box instead.
+              isFullscreen ? { width: '100%', height: '100%' } : { paddingTop: 'min(56.25%, 75vh)' }
+            }
             onContextMenu={(e) => e.preventDefault()}
           >
             <div className="absolute inset-0" style={{ isolation: 'isolate' }}>
@@ -219,10 +228,11 @@ export default function VideoPlayer({
                   <VideoWatermark label={watermarkLabel} />
                   <button
                     onClick={toggleFullscreen}
-                    title={isFullscreen ? 'Exit full screen' : 'Full screen (keeps watermark visible)'}
-                    className="absolute top-3 right-3 z-[2147483647] w-9 h-9 rounded-lg bg-black/50 hover:bg-black/70 text-white flex items-center justify-center transition-colors backdrop-blur-sm"
+                    title={isFullscreen ? 'Exit full screen' : 'Full screen with watermark protection'}
+                    className="absolute top-3 right-3 z-[2147483647] flex items-center gap-2 rounded-lg bg-brand-500 hover:bg-brand-600 text-white text-xs sm:text-sm font-semibold px-3 py-2 shadow-lg transition-colors"
                   >
                     {isFullscreen ? <Minimize className="w-4 h-4" /> : <Maximize className="w-4 h-4" />}
+                    <span>{isFullscreen ? 'Exit Full Screen' : 'Full Screen'}</span>
                   </button>
                 </>
               ) : (
@@ -250,6 +260,10 @@ export default function VideoPlayer({
                   <CheckCircle className="w-4 h-4" /> Completed
                 </span>
               )}
+            </div>
+            <div className="flex items-center gap-1.5 text-gray-500 text-xs mt-3">
+              <Maximize className="w-3 h-3" />
+              Use the "Full Screen" button on the video (not the player's own) to keep your watermark visible.
             </div>
           </div>
         </div>
